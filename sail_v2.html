@@ -26,16 +26,20 @@
   var boatSpeed = 0;
   var direction = 0;
 
-  var ballRadius = 10;
-  var boatWidth = 25;
-  var boatLength = 60;
-  var mastRadius = 3;
+  const ballRadius = 10;
+  const boatWidth = 25;
+  const boatLength = 60;
+  const mastRadius = 3;
 
   var boatHeading = 2 * Math.PI;
   var sailAngle = 0 * (Math.PI / 180);
-  var steerInc = 2 * (Math.PI / 180);
-  var sailInc = 2 * (Math.PI / 180);
-  var maxSailAngle = Math.PI / 2;
+  const steerInc = 2 * (Math.PI / 180);
+  const sailInc = 2 * (Math.PI / 180);
+  const maxSailAngle = Math.PI / 2;
+  const minSailAngle = 5 * (Math.PI / 180);
+  const numSheetLevels = 5;
+  var sheetAngle = 0;
+  var sheetLevel = 0;
 
   var windAngle = 0;
   var windSpeed = 100;
@@ -47,7 +51,7 @@
   var sailDc = 0;
   var sailLiftForce = 0;
   var sailDragForce = 0;
-  var forceConstant = 0.01;
+  const forceConstant = 0.01;
 
   var boatSailLiftAngle = 0;
   var boatSailDragAngle = 0;
@@ -56,6 +60,7 @@
 
   var rightPressed = false;
   var leftPressed = false;
+  var numberPressed = false;
 
 
   function drawBoat() {
@@ -101,11 +106,11 @@
     ctx.restore();
   }
 
-  function sailLiftCoef(angle) {
+  function findSailLiftCoef(angle) {
     return 0.2756 * angle ** 6 - 2.3829 * angle ** 5 + 7.6358 * angle ** 4 -10.576 * angle ** 3 + 4.3095 * angle ** 2 + 1.8626 * angle - 0.0279;
   }
 
-  function sailDragCoef(angle) {
+  function findSailDragCoef(angle) {
     return -0.1084 * angle ** 5 + 0.8418 * angle ** 4 - 2.5078 * angle ** 3 + 3.1112 * angle ** 2 - 0.5822 * angle + 0.0956;
   }
 
@@ -117,21 +122,36 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBoat();
 
-    // calcualte sail angle to wind
+    // calculate sail angle to wind
     boatWindAngle = (boatHeading - windAngle) % (2 * Math.PI);
     sailWindAngle = (boatHeading + sailAngle - windAngle) % (2 * Math.PI);
     if(sailWindAngle < 0) {
       sailWindAngle += 2 * Math.PI;
     }
 
+    // turn sail based on wind and sheet
+    if(Math.sin(sailWindAngle) > 0) {
+      if(sailAngle > - sheetAngle){
+        sailAngle -= sailInc;
+      } else if(sailAngle < - sheetAngle){
+        sailAngle +=sailInc;
+      }
+    } else {
+      if(sailAngle < sheetAngle){
+        sailAngle += sailInc;
+      } else if(sailAngle > sheetAngle){
+        sailAngle -= sailInc;
+      }
+    }
+
     if(sailWindAngle < Math.PI) {
       sailLiftAngle = windAngle + (Math.PI / 2);
-      sailLc = sailLiftCoef(sailWindAngle);
-      sailDc = sailDragCoef(sailWindAngle);
+      sailLc = findSailLiftCoef(sailWindAngle);
+      sailDc = findSailDragCoef(sailWindAngle);
     } else {
       sailLiftAngle = windAngle - (Math.PI / 2);
-      sailLc = sailLiftCoef((2 * Math.PI) - sailWindAngle);
-      sailDc = sailDragCoef((2 * Math.PI) - sailWindAngle);
+      sailLc = findSailLiftCoef((2 * Math.PI) - sailWindAngle);
+      sailDc = findSailDragCoef((2 * Math.PI) - sailWindAngle);
     }
 
     sailDragAngle = (windAngle + Math.PI) % (2 * Math.PI);
@@ -168,6 +188,12 @@
     ctx.strokeText(boatSailForForce, 10, 310);
     */
 
+    /*
+    ctx.font = "20px Arial";
+    ctx.strokeText(sheetLevel, 10, 20);
+    ctx.strokeText(sheetAngle, 10, 40);
+    ctx.strokeText(sailAngle, 10, 60);
+    */
 
     // calc dx and dy from heading and speed
     direction = boatHeading;
@@ -230,18 +256,24 @@
       boatHeading += 2 * Math.PI;
     }
 
+    if(numberPressed) {
+      sheetAngle = ((sheetLevel - 1) * (maxSailAngle - minSailAngle) / numSheetLevels) + minSailAngle;
+    }
+
+    /* up down arrow keys to control sheet
     if(upPressed) {
-      sailAngle += sailInc;
-      if (sailAngle > maxSailAngle){
-        sailAngle = maxSailAngle;
+      sheetAngle += sailInc;
+      if (sheetAngle > maxSailAngle){
+        sheetAngle = maxSailAngle;
       }
     }
     else if(downPressed) {
-      sailAngle -= sailInc;
-      if (sailAngle < -maxSailAngle){
-        sailAngle = -maxSailAngle;
+      sheetAngle -= sailInc;
+      if (sheetAngle < 0){
+        sheetAngle = 0;
       }
     }
+    */
 
   }
   setInterval(draw, 10);
@@ -262,6 +294,10 @@
       else if(e.key == "Down" || e.key == "ArrowDown") {
           downPressed = true;
       }
+      else if((e.which || e.keyCode) > 48 && (e.which || e.keyCode) < numSheetLevels + 49) {
+          numberPressed = true;
+          sheetLevel = (e.which || e.keyCode) - 48;
+      }
   }
 
   function keyUpHandler(e) {
@@ -276,6 +312,9 @@
       }
       else if(e.key == "Down" || e.key == "ArrowDown") {
           downPressed = false;
+      }
+      else if((e.which || e.keyCode) > 48 && (e.which || e.keyCode) < numSheetLevels + 49) {
+          numberPressed = false;
       }
   }
 
