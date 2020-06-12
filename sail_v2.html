@@ -66,7 +66,20 @@
   function drawBoat() {
     var w = boatWidth / 2;
     var l = boatLength - w;
+    var b = 0.9 * l;
+    var b2 = b * Math.cos(sailAngle / 2);
+    var xrad = Math.sqrt(b ** 2 - b2 ** 2);
+    var yrad = b * Math.sin(sheetAngle / 2) - xrad;
+    //var yrad = (2 * ((b * Math.sin(sheetAngle / 2)) / Math.PI) ** 2) - xrad ** 2;
 
+    /*
+    ctx.font = "20px Arial";
+    ctx.strokeText(sheetLevel, 10, 20);
+    ctx.strokeText(sheetAngle, 10, 40);
+    ctx.strokeText(sailAngle, 10, 60);
+    ctx.strokeText(xrad, 10, 80);
+    */
+    
     ctx.save();
 
     ctx.translate(x, y);
@@ -88,12 +101,21 @@
     ctx.beginPath();
     ctx.rotate(sailAngle);
     ctx.moveTo(mastRadius, mastRadius);
-    ctx.lineTo(0.2 * mastRadius, 0.9 * l);
-    ctx.lineTo(-0.2 * mastRadius, 0.9 * l);
+    ctx.lineTo(0.2 * mastRadius, b);
+    ctx.lineTo(-0.2 * mastRadius, b);
     ctx.lineTo(-mastRadius, mastRadius);
     ctx.closePath();
     ctx.fillStyle = "#FFFF00";
     ctx.fill();
+
+    /*
+    // Draw sheet
+    ctx.beginPath();
+    ctx.rotate(- sailAngle / 2);
+    ctx.ellipse(0, b2, xrad, yrad, 0, 0, Math.PI);
+    ctx.strokeStyle = "red";
+    ctx.stroke();
+    */
 
     // Draw mast
     ctx.beginPath();
@@ -131,15 +153,15 @@
 
     // turn sail based on wind and sheet
     if(Math.sin(sailWindAngle) > 0) {
-      if(sailAngle > - sheetAngle){
+      if(sailAngle > - sheetAngle + sailInc){
         sailAngle -= sailInc;
-      } else if(sailAngle < - sheetAngle){
+      } else if(sailAngle < - sheetAngle - sailInc){
         sailAngle +=sailInc;
       }
     } else {
-      if(sailAngle < sheetAngle){
+      if(sailAngle < sheetAngle - sailInc){
         sailAngle += sailInc;
-      } else if(sailAngle > sheetAngle){
+      } else if(sailAngle > sheetAngle + sailInc){
         sailAngle -= sailInc;
       }
     }
@@ -188,12 +210,9 @@
     ctx.strokeText(boatSailForForce, 10, 310);
     */
 
-    /*
-    ctx.font = "20px Arial";
-    ctx.strokeText(sheetLevel, 10, 20);
-    ctx.strokeText(sheetAngle, 10, 40);
-    ctx.strokeText(sailAngle, 10, 60);
-    */
+
+
+
 
     // calc dx and dy from heading and speed
     direction = boatHeading;
