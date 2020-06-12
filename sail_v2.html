@@ -6,11 +6,15 @@
     <style>
     	* { padding: 0; margin: 0; }
     	canvas { background: #00BFFF; display: block; margin: 0 auto; }
+      h2 {text-align: center;}
     </style>
 </head>
 <body>
 
 <canvas id="myCanvas" width="800" height="800"></canvas>
+
+<h2>Left & Right arrows steer the boat.</h2>
+<h2>Up & Down arrows control the sail.</h2>
 
 <script>
 	// JavaScript code goes here
@@ -47,7 +51,7 @@
   var sailDc = 0;
   var sailLiftForce = 0;
   var sailDragForce = 0;
-  var forceConstant = 0.01;
+  var forceConstant = 0.013;
 
   var boatSailLiftAngle = 0;
   var boatSailDragAngle = 0;
