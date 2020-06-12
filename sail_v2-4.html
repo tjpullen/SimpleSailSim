@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Sail Sim</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #00BFFF; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<canvas id="myCanvas" width="800" height="800"></canvas>
+
+<script>
+	// JavaScript code goes here
+  var canvas = document.getElementById("myCanvas");
+  var ctx = canvas.getContext("2d");
+
+  var x = canvas.width/2;
+  var y = canvas.height/2;
+
+  var dx = 1;
+  var dy = -1;
+
+  var boatSpeed = 0;
+  var direction = 0;
+
+  var ballRadius = 10;
+  var boatWidth = 25;
+  var boatLength = 60;
+  var mastRadius = 3;
+
+  var boatHeading = 2 * Math.PI;
+  var sailAngle = 0 * (Math.PI / 180);
+  var steerInc = 2 * (Math.PI / 180);
+  var sailInc = 2 * (Math.PI / 180);
+  var maxSailAngle = Math.PI / 2;
+
+  var windAngle = 0;
+  var windSpeed = 100;
+  var boatWindAngle = 0;
+  var sailWindAngle = 0;
+  var sailLiftAngle = 0;
+  var sailDragAngle = 0;
+  var sailLc = 0;
+  var sailDc = 0;
+  var sailLiftForce = 0;
+  var sailDragForce = 0;
+  var forceConstant = 0.01;
+
+  var boatSailLiftAngle = 0;
+  var boatSailDragAngle = 0;
+  var boatSailForForce = 0;
+  var boatSailBackForce = 0;
+
+  var rightPressed = false;
+  var leftPressed = false;
+
+
+  function drawBoat() {
+    var w = boatWidth / 2;
+    var l = boatLength - w;
+
+    ctx.save();
+
+    ctx.translate(x, y);
+    ctx.rotate(boatHeading);
+
+    // Draw hull
+    ctx.beginPath();
+    ctx.moveTo(0, -w);
+    ctx.lineTo(w, w);
+    ctx.lineTo(w, l);
+    ctx.lineTo(-w, l);
+    ctx.lineTo(-w, w);
+    ctx.closePath();
+
+    ctx.fillStyle = "#006400";
+    ctx.fill();
+
+    // Draw Sail
+    ctx.beginPath();
+    ctx.rotate(sailAngle);
+    ctx.moveTo(mastRadius, mastRadius);
+    ctx.lineTo(0.2 * mastRadius, 0.9 * l);
+    ctx.lineTo(-0.2 * mastRadius, 0.9 * l);
+    ctx.lineTo(-mastRadius, mastRadius);
+    ctx.closePath();
+    ctx.fillStyle = "#FFFF00";
+    ctx.fill();
+
+    // Draw mast
+    ctx.beginPath();
+    ctx.arc(0, 0, mastRadius, 0, Math.PI * 2);
+    ctx.closePath();
+
+    ctx.fillStyle = "#0000FF";
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function sailLiftCoef(angle) {
+    return 0.2756 * angle ** 6 - 2.3829 * angle ** 5 + 7.6358 * angle ** 4 -10.576 * angle ** 3 + 4.3095 * angle ** 2 + 1.8626 * angle - 0.0279;
+  }
+
+  function sailDragCoef(angle) {
+    return -0.1084 * angle ** 5 + 0.8418 * angle ** 4 - 2.5078 * angle ** 3 + 3.1112 * angle ** 2 - 0.5822 * angle + 0.0956;
+  }
+
+  function calcBoatSpeed() {
+
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBoat();
+
+    // calcualte sail angle to wind
+    boatWindAngle = (boatHeading - windAngle) % (2 * Math.PI);
+    sailWindAngle = (boatHeading + sailAngle - windAngle) % (2 * Math.PI);
+    if(sailWindAngle < 0) {
+      sailWindAngle += 2 * Math.PI;
+    }
+
+    if(sailWindAngle < Math.PI) {
+      sailLiftAngle = windAngle + (Math.PI / 2);
+      sailLc = sailLiftCoef(sailWindAngle);
+      sailDc = sailDragCoef(sailWindAngle);
+    } else {
+      sailLiftAngle = windAngle - (Math.PI / 2);
+      sailLc = sailLiftCoef((2 * Math.PI) - sailWindAngle);
+      sailDc = sailDragCoef((2 * Math.PI) - sailWindAngle);
+    }
+
+    sailDragAngle = (windAngle + Math.PI) % (2 * Math.PI);
+
+    sailLiftForce = forceConstant * windSpeed ** 2 * sailLc;
+    sailDragForce = forceConstant * windSpeed ** 2 * sailDc;
+    boatSailLiftAngle = sailLiftAngle - boatHeading;
+    boatSailDragAngle = boatHeading - windAngle;
+    boatSailPartForForce = sailLiftForce * Math.cos(boatSailLiftAngle);
+    boatSailPartBackForce = sailDragForce * Math.cos(boatWindAngle);
+    boatSailForForce = sailLiftForce * Math.cos(boatSailLiftAngle) - sailDragForce * Math.cos(boatWindAngle);
+
+    boatSpeed = boatSailForForce;
+
+    /*
+    ctx.font = "20px Arial";
+    ctx.strokeText(boatHeading, 10, 20);
+    ctx.strokeText(sailAngle, 10, 40);
+    ctx.strokeText(sailWindAngle, 10, 60);
+
+    ctx.strokeText(sailLiftAngle, 10, 90);
+    ctx.strokeText(sailDragAngle, 10, 110);
+
+    ctx.strokeText(boatSailLiftAngle, 10, 140);
+
+    ctx.strokeText(sailLc, 10, 170);
+    ctx.strokeText(sailDc, 10, 190);
+
+    ctx.strokeText(sailLiftForce, 10, 220);
+    ctx.strokeText(sailDragForce, 10, 240);
+
+    ctx.strokeText(boatSailPartForForce, 10, 270);
+    ctx.strokeText(boatSailPartBackForce, 10, 290);
+    ctx.strokeText(boatSailForForce, 10, 310);
+    */
+
+
+    // calc dx and dy from heading and speed
+    direction = boatHeading;
+    dx = Math.sin(direction) * boatSpeed / 100;
+    dy = - Math.cos(direction) * boatSpeed / 100;
+    x += dx;
+    y += dy;
+
+    // move boat but checking for edges
+    if(x + dx > canvas.width - (boatWidth / 2)) {
+      x = canvas.width - (boatWidth / 2);
+      if(boatHeading < (Math.PI / 2)) {
+        boatHeading = 0;
+      }
+      else {
+        boatHeading = Math.PI;
+      }
+    } else if(x + dx < boatWidth / 2) {
+      x = boatWidth / 2;
+      if(boatHeading > (3 * Math.PI / 2)) {
+        boatHeading = 0;
+      }
+      else {
+        boatHeading = Math.PI;
+      }
+    }
+
+    if(y + dy > canvas.height - (boatWidth / 2)) {
+      y = canvas.height - (boatWidth / 2);
+      if(boatHeading < Math.PI) {
+        boatHeading = Math.PI / 2;
+      }
+      else {
+        boatHeading = 3 * Math.PI / 2;
+      }
+    } else if(y + dy < boatWidth / 2) {
+      y = boatWidth / 2;
+      if(boatHeading > Math.PI) {
+        boatHeading = 3 * Math.PI / 2;
+      }
+      else {
+        boatHeading = Math.PI / 2;
+      }
+    }
+
+    //fix bottom left corner bug
+    if(x <= boatWidth / 2 && y >= canvas.height - (boatWidth / 2)) {
+      boatHeading = Math.PI / 4;
+    }
+
+    // parse key presses
+    if(rightPressed) {
+      boatHeading += steerInc;
+    }
+    else if(leftPressed) {
+      boatHeading -= steerInc;
+    }
+    boatHeading = boatHeading % (2 * Math.PI)
+    if(boatHeading < 0) {
+      boatHeading += 2 * Math.PI;
+    }
+
+    if(upPressed) {
+      sailAngle += sailInc;
+      if (sailAngle > maxSailAngle){
+        sailAngle = maxSailAngle;
+      }
+    }
+    else if(downPressed) {
+      sailAngle -= sailInc;
+      if (sailAngle < -maxSailAngle){
+        sailAngle = -maxSailAngle;
+      }
+    }
+
+  }
+  setInterval(draw, 10);
+
+  document.addEventListener("keydown", keyDownHandler, false);
+  document.addEventListener("keyup", keyUpHandler, false);
+
+  function keyDownHandler(e) {
+      if(e.key == "Right" || e.key == "ArrowRight") {
+          rightPressed = true;
+      }
+      else if(e.key == "Left" || e.key == "ArrowLeft") {
+          leftPressed = true;
+      }
+      else if(e.key == "Up" || e.key == "ArrowUp") {
+          upPressed = true;
+      }
+      else if(e.key == "Down" || e.key == "ArrowDown") {
+          downPressed = true;
+      }
+  }
+
+  function keyUpHandler(e) {
+      if(e.key == "Right" || e.key == "ArrowRight") {
+          rightPressed = false;
+      }
+      else if(e.key == "Left" || e.key == "ArrowLeft") {
+          leftPressed = false;
+      }
+      else if(e.key == "Up" || e.key == "ArrowUp") {
+          upPressed = false;
+      }
+      else if(e.key == "Down" || e.key == "ArrowDown") {
+          downPressed = false;
+      }
+  }
+
+</script>
+
+</body>
+</html>
