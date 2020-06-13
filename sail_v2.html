@@ -6,11 +6,18 @@
     <style>
     	* { padding: 0; margin: 0; }
     	canvas { background: #00BFFF; display: block; margin: 0 auto; }
+      h2 {
+        font-family: Verdana;
+        text-align: center;
+      }
     </style>
 </head>
 <body>
 
 <canvas id="myCanvas" width="800" height="800"></canvas>
+
+<h2>Steer with Left & Right arrows.</h2>
+<h2>Control main sheet with numbers 1 - 5.</h2>
 
 <script>
 	// JavaScript code goes here
@@ -69,8 +76,13 @@
     var b = 0.9 * l;
     var b2 = b * Math.cos(sailAngle / 2);
     var xrad = Math.sqrt(b ** 2 - b2 ** 2);
-    var yrad = b * Math.sin(sheetAngle / 2) - xrad;
-    //var yrad = (2 * ((b * Math.sin(sheetAngle / 2)) / Math.PI) ** 2) - xrad ** 2;
+    var sheetLength = b * Math.sin(sheetAngle / 2);
+    if(sheetLength < xrad) {
+      var yrad = 0
+    } else {
+      var yrad = (b * Math.sin(sheetAngle / 2)) - xrad;
+    }
+        //var yrad = (2 * ((b * Math.sin(sheetAngle / 2)) / Math.PI) ** 2) - xrad ** 2;
 
     /*
     ctx.font = "20px Arial";
@@ -78,8 +90,9 @@
     ctx.strokeText(sheetAngle, 10, 40);
     ctx.strokeText(sailAngle, 10, 60);
     ctx.strokeText(xrad, 10, 80);
+    ctx.strokeText(yrad, 10, 100);
     */
-    
+
     ctx.save();
 
     ctx.translate(x, y);
@@ -108,14 +121,15 @@
     ctx.fillStyle = "#FFFF00";
     ctx.fill();
 
-    /*
+
     // Draw sheet
     ctx.beginPath();
     ctx.rotate(- sailAngle / 2);
     ctx.ellipse(0, b2, xrad, yrad, 0, 0, Math.PI);
     ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
     ctx.stroke();
-    */
+
 
     // Draw mast
     ctx.beginPath();
