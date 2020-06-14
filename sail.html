@@ -71,12 +71,73 @@
   var numberPressed = true;
 
   var targetNumber = 6;
-  var targetRadius = 60;
-  var targetPlacing = 200;
+  var targetRadius = 50;
+  var targetPlacing = 220;
   var targetRotation = 0;
+  var targetXOffset = 0;
+  var targetYOffset = 0;
+  var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
+  var targetCollision = [];
 
-  function drawTargets(number, radius, placing, rotation) {
+  function placeTargets(number, radius, placing, rotation, xoffset = 0, yoffset = 0) {
     var targetAngle = 2 * Math.PI / number;
+    var i;
+    var xcoords = [];
+    var ycoords = [];
+    var radii = [];
+
+    for (i = 0; i < number; i++) {
+        xcoords[i] = placing * Math.sin(rotation + (i * targetAngle)) + canvas.width / 2 + xoffset;
+        ycoords[i] = - placing * Math.cos(rotation + (i * targetAngle)) + canvas.height / 2 + yoffset;
+        radii[i] = radius;
+    }
+
+    return [
+      xcoords,
+      ycoords,
+      radii
+    ]
+  }
+
+  function drawTargets() {
+    var i = 0;
+    var fontSize = 0;
+
+    // Loop through each target
+    for (i = 0; i < targetCoords[0].length; i++) {
+
+      // draw target
+      ctx.beginPath();
+      ctx.arc(targetCoords[0][i], targetCoords[1][i], targetCoords[2][i], 0, 2 * Math.PI);
+      ctx.closePath();
+
+      if(targetCollision[i]) {
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+      } else {
+        ctx.fillStyle = "rgba(142, 68, 173, 0.5)";
+      }
+      ctx.fill();
+
+      // label target
+      fontSize = targetCoords[2][i];
+      ctx.fillStyle = "black"
+      ctx.font = fontSize + "px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(String.fromCharCode(i + 65), targetCoords[0][i], targetCoords[1][i] + targetCoords[2][i] / 3);
+
+      // detect collisions
+      if(Math.sqrt((x - targetCoords[0][i]) ** 2 + (y - targetCoords[1][i]) ** 2) < targetCoords[2][i]) {
+        targetCollision[i] = true;
+      } else {
+        targetCollision[i] = false;
+      }
+    }
+  }
+
+
+  function drawTargets_old(number, radius, placing, rotation) {
+    var targetAngle = 2 * Math.PI / number;
+    var i;
 
     ctx.save();
 
@@ -304,6 +365,9 @@
     } else if(x >= canvas.width - (boatWidth / 2) && y >= canvas.height - (boatWidth / 2)) {
       boatHeading = 7 * Math.PI / 4;
     }
+
+    // check for collisions
+
 
     // parse key presses
     if(rightPressed) {
