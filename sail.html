@@ -15,7 +15,7 @@
 </head>
 <body>
 
-<canvas id="myCanvas" width="800" height="800"></canvas>
+<canvas id="myCanvas" width="800" height="600"></canvas>
 
 <h2>Steer with Left & Right arrows.</h2>
 <h2>Control main sheet with numbers 1 - 5.</h2>
@@ -47,7 +47,7 @@
   const minSailAngle = 5 * (Math.PI / 180);
   const numSheetLevels = 5;
   var sheetAngle = 0;
-  var sheetLevel = 0;
+  var sheetLevel = 1;
 
   var windAngle = 0;
   var windSpeed = 100;
@@ -68,8 +68,93 @@
 
   var rightPressed = false;
   var leftPressed = false;
-  var numberPressed = false;
+  var numberPressed = true;
 
+  var targetNumber = 6;
+  var targetRadius = 50;
+  var targetPlacing = 220;
+  var targetRotation = 0;
+  var targetXOffset = 0;
+  var targetYOffset = 0;
+  var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
+  var targetCollision = [];
+
+  function placeTargets(number, radius, placing, rotation, xoffset = 0, yoffset = 0) {
+    var targetAngle = 2 * Math.PI / number;
+    var i;
+    var xcoords = [];
+    var ycoords = [];
+    var radii = [];
+
+    for (i = 0; i < number; i++) {
+        xcoords[i] = placing * Math.sin(rotation + (i * targetAngle)) + canvas.width / 2 + xoffset;
+        ycoords[i] = - placing * Math.cos(rotation + (i * targetAngle)) + canvas.height / 2 + yoffset;
+        radii[i] = radius;
+    }
+
+    return [
+      xcoords,
+      ycoords,
+      radii
+    ]
+  }
+
+  function drawTargets() {
+    var i = 0;
+    var fontSize = 0;
+
+    // Loop through each target
+    for (i = 0; i < targetCoords[0].length; i++) {
+
+      // draw target
+      ctx.beginPath();
+      ctx.arc(targetCoords[0][i], targetCoords[1][i], targetCoords[2][i], 0, 2 * Math.PI);
+      ctx.closePath();
+
+      if(targetCollision[i]) {
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+      } else {
+        ctx.fillStyle = "rgba(142, 68, 173, 0.5)";
+      }
+      ctx.fill();
+
+      // label target
+      fontSize = targetCoords[2][i];
+      ctx.fillStyle = "black"
+      ctx.font = fontSize + "px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(String.fromCharCode(i + 65), targetCoords[0][i], targetCoords[1][i] + targetCoords[2][i] / 3);
+
+      // detect collisions
+      if(Math.sqrt((x - targetCoords[0][i]) ** 2 + (y - targetCoords[1][i]) ** 2) < targetCoords[2][i]) {
+        targetCollision[i] = true;
+      } else {
+        targetCollision[i] = false;
+      }
+    }
+  }
+
+
+  function drawTargets_old(number, radius, placing, rotation) {
+    var targetAngle = 2 * Math.PI / number;
+    var i;
+
+    ctx.save();
+
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(rotation);
+    for (i = 0; i < number; i++) {
+      ctx.beginPath();
+      ctx.arc(0, - placing, radius, 0, 2 * Math.PI);
+      ctx.closePath();
+
+      ctx.fillStyle = "rgba(142, 68, 173, 0.5)"
+      ctx.fill();
+
+      ctx.rotate(targetAngle);
+    }
+    ctx.restore();
+  }
 
   function drawBoat() {
     var w = boatWidth / 2;
@@ -158,6 +243,7 @@
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBoat();
+    drawTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
 
     // calculate sail angle to wind
     boatWindAngle = (boatHeading - windAngle) % (2 * Math.PI);
@@ -273,10 +359,15 @@
       }
     }
 
-    //fix bottom left corner bug
+    //fix bottom corner bugs
     if(x <= boatWidth / 2 && y >= canvas.height - (boatWidth / 2)) {
       boatHeading = Math.PI / 4;
+    } else if(x >= canvas.width - (boatWidth / 2) && y >= canvas.height - (boatWidth / 2)) {
+      boatHeading = 7 * Math.PI / 4;
     }
+
+    // check for collisions
+
 
     // parse key presses
     if(rightPressed) {
