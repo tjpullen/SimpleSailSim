@@ -79,6 +79,8 @@
   var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
   var targetCollision = [];
 
+  var timer = 0;
+
   function placeTargets(number, radius, placing, rotation, xoffset = 0, yoffset = 0) {
     var targetAngle = 2 * Math.PI / number;
     var i;
@@ -132,6 +134,47 @@
         targetCollision[i] = false;
       }
     }
+  }
+
+  function drawWind(number = 1, moving = 0) {
+    // draw wind arrows
+
+    var xoffset = 30;
+    var yoffset = -30;
+    var arrowSpacing = 100;
+    var arrowLength = 40;
+    var arrowWidth = 20;
+    var i = 0;
+    var ymove = 0;
+
+    timer += 1;
+    ymove = (timer * moving / 5) % arrowSpacing;
+
+    // wind arrows
+    ctx.save();
+    ctx.translate(xoffset, yoffset);
+    ctx.rotate(windAngle);
+    for (i = 0; i < number; i++) {
+      drawArrow(0, i * arrowSpacing + ymove, arrowLength, arrowWidth);
+      drawArrow(canvas.width - 2 * xoffset, i * arrowSpacing + ymove, arrowLength, arrowWidth);
+    }
+    ctx.restore();
+
+    }
+
+  function drawArrow(xcentre, ycentre, length, width) {
+    ctx.moveTo(xcentre - width / 6, ycentre - length / 2);
+    ctx.lineTo(xcentre + width / 6, ycentre - length / 2);
+    ctx.lineTo(xcentre + width / 6, ycentre);
+    ctx.lineTo(xcentre + width / 2, ycentre);
+    ctx.lineTo(xcentre, ycentre + length / 2);
+    ctx.lineTo(xcentre - width / 2, ycentre);
+    ctx.lineTo(xcentre - width / 6, ycentre);
+    //ctx.lineTo(xcentre - width / 6, ycentre - length / 2);
+    ctx.closePath();
+
+    ctx.fillStyle = "rgba(255,255,255,0.1)";
+    ctx.fill();
   }
 
 
@@ -242,6 +285,7 @@
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawWind(7, 4);
     drawBoat();
     drawTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
 
@@ -257,7 +301,7 @@
       if(sailAngle > - sheetAngle + sailInc){
         sailAngle -= sailInc;
       } else if(sailAngle < - sheetAngle - sailInc){
-        sailAngle +=sailInc;
+        sailAngle += sailInc;
       }
     } else {
       if(sailAngle < sheetAngle - sailInc){
