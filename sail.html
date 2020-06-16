@@ -42,10 +42,12 @@
   var boatHeading = 2 * Math.PI;
   var sailAngle = 0 * (Math.PI / 180);
   const steerInc = 1 * (Math.PI / 180);
+  const steerResp = 0.6;
   const sailInc = 2 * (Math.PI / 180);
   const maxSailAngle = Math.PI / 2;
   const minSailAngle = 5 * (Math.PI / 180);
   const numSheetLevels = 5;
+  const trainSailMode = false; // control sail directly rather than with sheet
   var sheetAngle = 0;
   var sheetLevel = 1;
 
@@ -430,35 +432,43 @@
 
     // parse key presses
     if(rightPressed) {
-      boatHeading += steerInc;
+      boatHeading += steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp);
     }
     else if(leftPressed) {
-      boatHeading -= steerInc;
+      boatHeading -= steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp);
     }
     boatHeading = boatHeading % (2 * Math.PI)
     if(boatHeading < 0) {
       boatHeading += 2 * Math.PI;
     }
 
-    if(numberPressed) {
-      sheetAngle = ((sheetLevel - 1) * (maxSailAngle - minSailAngle) / numSheetLevels) + minSailAngle;
-    }
-
-    /* up down arrow keys to control sheet
-    if(upPressed) {
-      sheetAngle += sailInc;
-      if (sheetAngle > maxSailAngle){
-        sheetAngle = maxSailAngle;
-      }
-    }
-    else if(downPressed) {
-      sheetAngle -= sailInc;
-      if (sheetAngle < 0){
-        sheetAngle = 0;
-      }
-    }
+    /*
+    ctx.font = "20px Arial";
+    ctx.textAlign = "left";
+    ctx.strokeText(boatSpeed, 10, 20);
+    ctx.strokeText(Math.max(Math.min(boatSpeed / 150, 1), steerResp), 10, 40);
     */
 
+
+    if (trainSailMode) {
+      //up down arrow keys to control sheet
+      if(upPressed) {
+        sheetAngle += sailInc;
+        if (sheetAngle > maxSailAngle){
+          sheetAngle = maxSailAngle;
+        }
+      }
+      else if(downPressed) {
+        sheetAngle -= sailInc;
+        if (sheetAngle < 0){
+          sheetAngle = 0;
+        }
+      }
+    } else {
+      if(numberPressed) {
+        sheetAngle = ((sheetLevel - 1) * (maxSailAngle - minSailAngle) / numSheetLevels) + minSailAngle;
+      }
+    }
   }
   setInterval(draw, 10);
 
