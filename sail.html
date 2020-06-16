@@ -25,6 +25,10 @@
   var canvas = document.getElementById("myCanvas");
   var ctx = canvas.getContext("2d");
 
+  var gameState = 0;
+  var setTime = new Date().getTime();
+  var gameTimer = 0;
+
   var x = canvas.width/2;
   var y = canvas.height/2;
 
@@ -48,8 +52,12 @@
   const minSailAngle = 5 * (Math.PI / 180);
   const numSheetLevels = 5;
   const trainSailMode = false; // control sail directly rather than with sheet
+  var fixBoat = true; // keep boat fixed and not moving
   var sheetAngle = 0;
   var sheetLevel = 1;
+
+  var startMessage = "Press Spacebar to start"
+  var endMessage = "";
 
   var windAngle = 0;
   var windSpeed = 100;
@@ -73,8 +81,9 @@
   var rightPressed = false;
   var leftPressed = false;
   var numberPressed = true;
+  var spacePressed = false;
 
-  var targetNumber = 8;
+  var targetNumber = 3;
   var targetRadius = 50;
   var targetPlacing = 260;
   var targetRotation = 0;
@@ -91,17 +100,20 @@
     var xcoords = [];
     var ycoords = [];
     var radii = [];
+    var hit = [];
 
     for (i = 0; i < number; i++) {
         xcoords[i] = placing * Math.sin(rotation + (i * targetAngle)) + canvas.width / 2 + xoffset;
         ycoords[i] = - placing * Math.cos(rotation + (i * targetAngle)) + canvas.height / 2 + yoffset;
         radii[i] = radius;
+        hit[i] = false;
     }
 
     return [
       xcoords,
       ycoords,
-      radii
+      radii,
+      hit
     ]
   }
 
@@ -119,12 +131,16 @@
         targetCollision[i] = false;
       }
 
+      if (targetCollision[i]) {
+        targetCoords[3][i] = true;
+      }
+
       // draw target
       ctx.beginPath();
       ctx.arc(targetCoords[0][i], targetCoords[1][i], targetCoords[2][i], 0, 2 * Math.PI);
       ctx.closePath();
 
-      if(targetCollision[i]) {
+      if(targetCoords[3][i]) {
         ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
       } else {
         ctx.fillStyle = "rgba(142, 68, 173, 0.5)";
@@ -138,6 +154,67 @@
       ctx.textAlign = "center";
       ctx.fillText(String.fromCharCode(i + 65), targetCoords[0][i], targetCoords[1][i] + targetCoords[2][i] / 3);
     }
+  }
+
+  function targetRemaining() {
+    var remaining = targetCoords[3].length;
+
+    for (var i = 0; i < targetCoords[3].length; i++) {
+      if(targetCoords[3][i]) {
+        remaining -= 1;
+      }
+    }
+    return remaining;
+  }
+
+  function displayMessage() {
+    if ((timer / 50) % 2 >= 1 && gameState != 1) {
+      var message = "";
+
+      if (gameState == 0) {
+        message = startMessage;
+      } else {
+        message = endMessage;
+      }
+
+      ctx.fillStyle = "black"
+      ctx.font = "60 px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(message, canvas.width / 2, canvas.height / 2 + 30);
+    }
+  }
+
+  function drawTimer(run = true, reset = false){
+    var sep = ":"
+
+    if (reset) {
+      gameTimer = 0;
+    }
+
+    if (run) {
+      gameTimer += 10;
+      if ((gameTimer/500) % 2 >= 1) {
+        sep = " ";
+      }
+    }
+
+    //var now = new Date().getTime();
+    //var distance = now - setTime;
+    var minutes = Math.floor((gameTimer % (1000 * 60 * 60)) / (1000 * 60));
+    var seconds = Math.floor((gameTimer % (1000 * 60 )) / 1000);
+
+    if (seconds < 10) {
+      seconds = "0" + seconds;
+    }
+
+    var message = minutes + sep + seconds;
+    endMessage = "Time - " + message;
+
+    ctx.font = "bold 30px Lucida Console";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "black";
+    ctx.fillText(message, 20, 40);
+    //ctx.fillText(gameState, 20, 80);
   }
 
   function drawWind(number = 1, moving = 0, xNumber = 2) {
@@ -156,8 +233,6 @@
       xSpace = (canvas.width - 2 * xoffset) / (xNumber - 1)
     }
 
-
-
     // wind arrows
     for (var j = 0; j < xNumber; j++) {
       if (j % 2 == 0) {
@@ -165,8 +240,6 @@
       } else {
         ymove = ((timer * moving / 5) + arrowSpacing / 2) % arrowSpacing;
       }
-
-
 
       ctx.save();
       ctx.translate(j * xSpace + xoffset , yoffset);
@@ -294,9 +367,24 @@
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     timer += 1;
+
+    if (gameState > 0) {
+      fixBoat = false;
+    }
+    if (gameState == 1 && targetRemaining() == 0) {
+      gameState += 1;
+    }
+
     drawWind(3, 5, 7);
+    drawTimer((gameState == 1));
     drawBoat();
     drawTargets();
+    displayMessage();
+
+    // end game if all targets hit
+    for (var i = 0; i < targetNumber; i++) {
+
+    }
 
     // calculate sail angle to wind
     boatWindAngle = (boatHeading - windAngle) % (2 * Math.PI);
@@ -394,8 +482,10 @@
     //boatDirection = boatHeading;
     dx = Math.sin(boatDirection) * boatSpeed / 100;
     dy = - Math.cos(boatDirection) * boatSpeed / 100;
-    x += dx;
-    y += dy;
+    if (fixBoat == false) {
+      x += dx;
+      y += dy;
+    }
 
     // move boat but checking for edges
     if(x + dx > canvas.width - (boatWidth / 2)) {
@@ -445,6 +535,11 @@
 
 
     // parse key presses
+
+    if (gameState == 0 && spacePressed) {
+      gameState += 1;
+    }
+
     if(rightPressed) {
       boatHeading += steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp);
     }
@@ -506,6 +601,9 @@
           numberPressed = true;
           sheetLevel = (e.which || e.keyCode) - 48;
       }
+      else if (e.keyCode === 32 || e.key === ' ') {
+        spacePressed = true;
+      }
   }
 
   function keyUpHandler(e) {
@@ -523,6 +621,9 @@
       }
       else if((e.which || e.keyCode) > 48 && (e.which || e.keyCode) < numSheetLevels + 49) {
           numberPressed = false;
+      }
+      else if (e.keyCode === 32 || e.key === ' ') {
+        spacePressed = false;
       }
   }
 
