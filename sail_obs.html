@@ -15,7 +15,7 @@
 </head>
 <body>
 
-<canvas id="myCanvas" width="1000" height="800"></canvas>
+<canvas id="myCanvas" width="800" height="600"></canvas>
 
 <h2>Steer with Left & Right arrows.</h2>
 <h2>Control main sheet with numbers 1 - 5.</h2>
@@ -60,7 +60,7 @@
   var sailLiftForce = 0;
   var sailDragForce = 0;
   var forceConstant = 0.013;
-  var sideForceConstant = 0.08;
+  var sideForceConstant = 0.1;
 
   var boatSailLiftAngle = 0;
   var boatSailDragAngle = 0;
@@ -74,7 +74,7 @@
 
   var targetNumber = 8;
   var targetRadius = 50;
-  var targetPlacing = 260;
+  var targetPlacing = 220;
   var targetRotation = 0;
   var targetXOffset = 0;
   var targetYOffset = 0;
@@ -319,28 +319,20 @@
 
     sailLiftForce = forceConstant * windSpeed ** 2 * sailLc;
     sailDragForce = forceConstant * windSpeed ** 2 * sailDc;
-    //boatSailLiftAngle = boatHeading - windAngle;
+    boatSailLiftAngle = boatHeading - windAngle;
     //boatSailLiftAngle = sailLiftAngle - boatHeading;
-    if (sailLiftAngle > 0) {
-      boatSailLiftAngle = sailLiftAngle - boatHeading;
-    } else {
-      boatSailLiftAngle = sailLiftAngle - boatHeading + 2 * Math.PI;
-    }
-    //boatSailDragAngle = boatHeading - windAngle;
+    boatSailDragAngle = boatHeading - windAngle;
     //boatSailPartForForce = sailLiftForce * Math.cos(boatSailLiftAngle);
     //boatSailPartBackForce = sailDragForce * Math.cos(boatWindAngle);
-    //boatSailForForce = sailLiftForce * Math.abs(Math.sin(boatWindAngle)) - sailDragForce * Math.cos(boatWindAngle);
-    //boatSailSideForce = sailLiftForce * Math.cos(boatWindAngle) + sailDragForce * Math.sin(boatWindAngle);
-    boatSailForForce = sailLiftForce * Math.cos(boatSailLiftAngle) - sailDragForce * Math.cos(boatWindAngle);
-    boatSailSideForce = sailLiftForce * Math.sin(boatSailLiftAngle) + sailDragForce * Math.sin(boatWindAngle);
+    boatSailForForce = sailLiftForce * Math.abs(Math.sin(boatWindAngle)) - sailDragForce * Math.cos(boatWindAngle);
+    boatSailSideForce = sailLiftForce * Math.cos(boatWindAngle) + sailDragForce * Math.sin(boatWindAngle);
+    //boatSailForForce = sailLiftForce * Math.cos(boatSailLiftAngle) - sailDragForce * Math.cos(boatWindAngle);
+    //boatSailSideForce = sailLiftForce * Math.sin(boatSailLiftAngle) - sailDragForce * Math.sin(boatWindAngle);
 
     // Quick fix - calc speed directly from forces
-    //boatSpeed = Math.sqrt(boatSailForForce ** 2 + (boatSailSideForce * sideForceConstant) ** 2);
-    //boatDirection = boatHeading + Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed);
-    boatDirection = boatHeading + Math.atan((boatSailSideForce * sideForceConstant) / boatSailForForce);
-    boatSpeed = boatSailForForce / Math.cos(Math.atan(boatSailSideForce * sideForceConstant) / boatSailForForce);
+    boatSpeed = Math.sqrt(boatSailForForce ** 2 + (boatSailSideForce * sideForceConstant) ** 2);
+    boatDirection = boatHeading + Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed);
 
-    /*
     ctx.font = "20px Arial";
     ctx.textAlign = "left";
     ctx.strokeText(rad2deg(boatHeading), 10, 20);
@@ -348,38 +340,33 @@
     ctx.strokeText(rad2deg(sailAngle), 10, 60);
     ctx.strokeText(rad2deg(sailWindAngle), 10, 80);
 
-    ctx.strokeText(rad2deg(sailLiftAngle), 10, 110);
-    ctx.strokeText(rad2deg(sailDragAngle), 10, 130);
+    //ctx.strokeText(sailLiftAngle, 10, 110);
+    //ctx.strokeText(sailDragAngle, 10, 130);
 
-    ctx.strokeText(rad2deg(boatSailLiftAngle), 10, 160);
-    ctx.strokeText(Math.sin(boatSailLiftAngle), 10, 180);
-    ctx.strokeText(Math.cos(boatSailLiftAngle), 10, 200);
-
-    ctx.strokeText(rad2deg(boatWindAngle), 10, 230);
-    ctx.strokeText(Math.sin(boatWindAngle), 10, 250);
-    ctx.strokeText(Math.cos(boatWindAngle), 10, 270);
-
+    ctx.strokeText(rad2deg(boatWindAngle), 10, 160);
+    ctx.strokeText(Math.sin(boatWindAngle), 10, 180);
+    ctx.strokeText(Math.cos(boatWindAngle), 10, 200);
 
     //ctx.strokeText(sailLc, 10, 190);
     //ctx.strokeText(sailDc, 10, 210);
 
-    //ctx.strokeText(sailLiftForce, 10, 240);
-    //ctx.strokeText(sailDragForce, 10, 260);
+    ctx.strokeText(sailLiftForce, 10, 240);
+    ctx.strokeText(sailDragForce, 10, 260);
 
-    ctx.strokeText(boatSailForForce, 10, 300);
-    ctx.strokeText(boatSailSideForce, 10, 320);
-    ctx.strokeText(rad2deg(Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed)), 10, 340);
+    ctx.strokeText(boatSailForForce, 10, 290);
+    ctx.strokeText(boatSailSideForce, 10, 310);
+    ctx.strokeText(rad2deg(Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed)), 10, 330);
 
     ctx.strokeText(boatSpeed, 10, 380);
     ctx.strokeText(rad2deg(boatDirection), 10, 4000);
-    */
+
 
     // calc dx and dy from heading and speed
     //boatDirection = boatHeading;
     dx = Math.sin(boatDirection) * boatSpeed / 100;
     dy = - Math.cos(boatDirection) * boatSpeed / 100;
-    x += dx;
-    y += dy;
+    //x += dx;
+    //y += dy;
 
     // move boat but checking for edges
     if(x + dx > canvas.width - (boatWidth / 2)) {
