@@ -4,7 +4,7 @@ This project is to design a very simple 2D sailing simulator aimed at teaching t
 
 ### Prototypes
 
-A simple prototype demonstrating boat movement and controls: (sail.html)[sail.html]
+A simple prototype demonstrating boat movement and controls: [sail.html](sail.html)
 
 A demonstration of boat controls on a stationary boat: [sail_demo.html](sail_demo.html)
 
