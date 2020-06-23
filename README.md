@@ -2,13 +2,17 @@
 
 This project is to design a very simple 2D sailing simulator aimed at teaching the basic principles of sailing to beginners.
 
-I'm currently working to get the basics of boat movement working. Take a look at an [early version](sail.html).
+### Prototypes
 
-### Game 1: Fixy sailing cart
+A simple prototype demonstrating boat movement and controls: (sail.html)[sail.html]
+
+A demonstration of boat controls on a stationary boat: [sail_demo.html](sail_demo.html)
+
+### Game 1: Fixy sailing
 
 [sail_fixy.html](sail_fixy.html)
 
-To learn how a sail propels a boat. Point the boat and set the sail then watch where it goes.
+To learn how the sail propels the boat. Point the boat and set the sail then watch where it goes.
 
 *Note - This is a simple setup where the boat doesn't slip sideways and sail angle is controlled directly rather than through a sheet.*
 
