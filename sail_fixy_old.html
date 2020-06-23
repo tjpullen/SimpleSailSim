@@ -18,7 +18,7 @@
 <canvas id="myCanvas" width="1000" height="800"></canvas>
 
 <h2>Steer with Left & Right arrows.</h2>
-<h2>Control the sail with numbers 1 - 5.</h2>
+<h2>Control the sail with Up & Down arrows.</h2>
 <h2>Aim your boat for a target, set the sail, then press Spacebar to start.</h2>
 
 <script>
@@ -341,6 +341,7 @@
     ctx.fillStyle = "#FFFF00";
     ctx.fill();
 
+
     // Draw sheet
     if (trainSailMode != true) {
       ctx.beginPath();
@@ -350,6 +351,7 @@
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+
 
     // Draw mast
     ctx.beginPath();
@@ -452,17 +454,10 @@
         if(sailAngle < sheetAngle - sailInc){
           // wind blowing sail to port
           sailAngle += sailInc * millis * sailDc;
-
         } else if(sailAngle > sheetAngle + sailInc){
           // sheet pulling sail to starboard
           sailAngle -= sailInc * millis / 10;
         }
-      }
-      // correct any movements beyond sheet limits
-      if (sailAngle > sheetAngle) {
-        sailAngle = sheetAngle;
-      } else if (sailAngle < - sheetAngle) {
-        sailAngle = -sheetAngle;
       }
     }
 
