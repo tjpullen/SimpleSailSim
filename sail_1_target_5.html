@@ -15,15 +15,33 @@
 </head>
 <body>
 
-<canvas id="myCanvas" width="800" height="600"></canvas>
+<canvas id="myCanvas" width="1000" height="800"></canvas>
 
 <h2>Steer with Left & Right arrows.</h2>
 <h2>Control main sheet with numbers 1 - 5.</h2>
+<h2>Aim: hit the target.</h2>
 
 <script>
 	// JavaScript code goes here
   var canvas = document.getElementById("myCanvas");
   var ctx = canvas.getContext("2d");
+
+  var millis = 0;
+  var oldTimeStamp = Date.now();
+
+  const gameMode = true;
+  const showMessages = true; // display start and end messages
+  var gameState = 0;
+  const trainSailMode = false; // control sail directly rather than with sheet
+  var fixBoat = true; // keep boat fixed and not moving
+  const sheetArrows = false; // control sheet using arrow keys instead of numbers
+  var showTimer = false;
+  const landYacht = false; // boat cannot move sideways
+  var steeringFixed = false;
+  var sailFixed = false;
+
+  var timer = 0;
+  var gameTimer = 0;
 
   var x = canvas.width/2;
   var y = canvas.height/2;
@@ -42,12 +60,16 @@
   var boatHeading = 2 * Math.PI;
   var sailAngle = 0 * (Math.PI / 180);
   const steerInc = 1 * (Math.PI / 180);
+  const steerResp = 0.6;
   const sailInc = 2 * (Math.PI / 180);
   const maxSailAngle = Math.PI / 2;
   const minSailAngle = 5 * (Math.PI / 180);
   const numSheetLevels = 5;
   var sheetAngle = 0;
   var sheetLevel = 1;
+
+  var startMessage = "Press Spacebar to start"
+  var endMessage = "Congratulations!";
 
   var windAngle = 0;
   var windSpeed = 100;
@@ -59,8 +81,12 @@
   var sailDc = 0;
   var sailLiftForce = 0;
   var sailDragForce = 0;
-  var forceConstant = 0.013;
-  var sideForceConstant = 0.1;
+  const forceConstant = 0.013;
+  var sideForceConstant = 0.08;
+
+  if (landYacht) {
+    sideForceConstant = 0;
+  }
 
   var boatSailLiftAngle = 0;
   var boatSailDragAngle = 0;
@@ -71,17 +97,18 @@
   var rightPressed = false;
   var leftPressed = false;
   var numberPressed = true;
+  var spacePressed = false;
+  var upPressed = false;
+  var downPressed = false;
 
-  var targetNumber = 8;
+  var targetNumber = 1;
   var targetRadius = 50;
-  var targetPlacing = 220;
-  var targetRotation = 0;
+  var targetPlacing = 260;
+  var targetRotation = 180 * (Math.PI / 180);
   var targetXOffset = 0;
   var targetYOffset = 0;
   var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
   var targetCollision = [];
-
-  var timer = 0;
 
   function placeTargets(number, radius, placing, rotation, xoffset = 0, yoffset = 0) {
     var targetAngle = 2 * Math.PI / number;
@@ -89,17 +116,20 @@
     var xcoords = [];
     var ycoords = [];
     var radii = [];
+    var hit = [];
 
     for (i = 0; i < number; i++) {
         xcoords[i] = placing * Math.sin(rotation + (i * targetAngle)) + canvas.width / 2 + xoffset;
         ycoords[i] = - placing * Math.cos(rotation + (i * targetAngle)) + canvas.height / 2 + yoffset;
         radii[i] = radius;
+        hit[i] = false;
     }
 
     return [
       xcoords,
       ycoords,
-      radii
+      radii,
+      hit
     ]
   }
 
@@ -117,12 +147,16 @@
         targetCollision[i] = false;
       }
 
+      if (targetCollision[i]) {
+        targetCoords[3][i] = true;
+      }
+
       // draw target
       ctx.beginPath();
       ctx.arc(targetCoords[0][i], targetCoords[1][i], targetCoords[2][i], 0, 2 * Math.PI);
       ctx.closePath();
 
-      if(targetCollision[i]) {
+      if(targetCoords[3][i]) {
         ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
       } else {
         ctx.fillStyle = "rgba(142, 68, 173, 0.5)";
@@ -138,7 +172,81 @@
     }
   }
 
-  function drawWind(number = 1, moving = 0) {
+  function targetRemaining() {
+    var remaining = targetCoords[3].length;
+
+    for (var i = 0; i < targetCoords[3].length; i++) {
+      if(targetCoords[3][i]) {
+        remaining -= 1;
+      }
+    }
+    return remaining;
+  }
+
+  function displayMessage() {
+    if ((timer / 50) % 2 >= 1 && gameState != 1) {
+      var message = "";
+
+      if (gameState == 0) {
+        message = startMessage;
+      } else {
+        if(endMessage.length > 0) {
+          message = endMessage;
+        } else {
+          message = "Time - " + formatTime(gameTimer, false)
+        }
+      }
+
+      ctx.fillStyle = "black";
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 0.2;
+      ctx.font = "bold 60 px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(message, canvas.width / 2, canvas.height / 2 + 30);
+      ctx.strokeText(message, canvas.width / 2, canvas.height / 2 + 30);
+    }
+  }
+
+  function updateTimer(millis, run = true, reset = false) {
+    if (reset) {
+      gameTimer = 0;
+    }
+
+    if (run) {
+      gameTimer += millis;
+    }
+  }
+
+  function formatTime(dispTime = gameTimer, flash = true) {
+    var minutes = Math.floor((dispTime % (1000 * 60 * 60)) / (1000 * 60));
+    var seconds = Math.floor((dispTime % (1000 * 60 )) / 1000);
+    var sep = ":";
+    var message = "";
+
+    if (seconds < 10) {
+      seconds = "0" + seconds;
+    }
+
+    if (flash && gameTimer / 500 % 2 >= 1) {
+      sep = " ";
+    }
+
+    message = minutes + sep + seconds;
+    return message;
+  }
+
+  function drawTimer(flash = true){
+
+    var message = formatTime(gameTimer, flash);
+
+    ctx.font = "bold 30px Lucida Console";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "black";
+    ctx.fillText(message, 20, 40);
+    //ctx.fillText(gameTimer / 500 % 2 < 1, 20, 80);
+  }
+
+  function drawWind(number = 1, moving = 0, xNumber = 2) {
     // draw wind arrows
 
     var xoffset = 30;
@@ -148,21 +256,30 @@
     var arrowWidth = 20;
     var i = 0;
     var ymove = 0;
+    var xSpace = 0;
 
-    timer += 1;
-    ymove = (timer * moving / 5) % arrowSpacing;
+    if (xNumber > 1) {
+      xSpace = (canvas.width - 2 * xoffset) / (xNumber - 1)
+    }
 
     // wind arrows
-    ctx.save();
-    ctx.translate(xoffset, yoffset);
-    ctx.rotate(windAngle);
-    for (i = 0; i < number; i++) {
-      drawArrow(0, i * arrowSpacing + ymove, arrowLength, arrowWidth, 1 - ((i * arrowSpacing + ymove) / (number * arrowSpacing)));
-      drawArrow(canvas.width - 2 * xoffset, i * arrowSpacing + ymove, arrowLength, arrowWidth, 1 - ((i * arrowSpacing + ymove) / (number * arrowSpacing)));
-    }
-    ctx.restore();
+    for (var j = 0; j < xNumber; j++) {
+      if (j % 2 == 0) {
+        ymove = (timer * moving / 5) % arrowSpacing;
+      } else {
+        ymove = ((timer * moving / 5) + arrowSpacing / 2) % arrowSpacing;
+      }
 
+      ctx.save();
+      ctx.translate(j * xSpace + xoffset , yoffset);
+      ctx.rotate(windAngle);
+      for (i = 0; i < number; i++) {
+        drawArrow(0, i * arrowSpacing + ymove, arrowLength, arrowWidth, 1 - ((i * arrowSpacing + ymove) / (number * arrowSpacing)));
+        //drawArrow(canvas.width - 2 * xoffset, i * arrowSpacing + ymove, arrowLength, arrowWidth, 1 - ((i * arrowSpacing + ymove) / (number * arrowSpacing)));
+      }
+      ctx.restore();
     }
+  }
 
   function drawArrow(xcentre, ycentre, length, width, transparency = 1) {
     ctx.beginPath();
@@ -233,15 +350,15 @@
     ctx.fillStyle = "#FFFF00";
     ctx.fill();
 
-
     // Draw sheet
-    ctx.beginPath();
-    ctx.rotate(- sailAngle / 2);
-    ctx.ellipse(0, b2, xrad, yrad, 0, 0, Math.PI);
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
+    if (trainSailMode != true) {
+      ctx.beginPath();
+      ctx.rotate(- sailAngle / 2);
+      ctx.ellipse(0, b2, xrad, yrad, 0, 0, Math.PI);
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
 
     // Draw mast
     ctx.beginPath();
@@ -278,9 +395,38 @@
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawWind(3, 5);
+
+    drawWind(3, 5, 7);
+    if (showTimer) {
+      drawTimer(gameState == 1);
+    }
     drawBoat();
     drawTargets();
+    if (showMessages) {
+      displayMessage();
+    }
+  }
+
+  function update(millis) {
+
+    // update timer
+    updateTimer(millis, gameState == 1);
+
+    timer += millis / 10;
+
+    // update game controls
+    if (gameState > 0 && gameMode) {
+      fixBoat = false;
+    }
+
+    if (gameState == 1 && targetRemaining() == 0 && gameMode) {
+      gameState += 1;
+    }
+
+    if (gameState > 0 && gameMode) {
+      //steeringFixed = true;
+      //sailFixed = true;
+    }
 
     // calculate sail angle to wind
     boatWindAngle = (boatHeading - windAngle) % (2 * Math.PI);
@@ -289,22 +435,7 @@
       sailWindAngle += 2 * Math.PI;
     }
 
-    // turn sail based on wind and sheet
-    if(Math.sin(sailWindAngle) > 0) {
-      if(sailAngle > - sheetAngle + sailInc){
-        sailAngle -= sailInc;
-      } else if(sailAngle < - sheetAngle - sailInc){
-        sailAngle += sailInc;
-      }
-    } else {
-      if(sailAngle < sheetAngle - sailInc){
-        sailAngle += sailInc;
-      } else if(sailAngle > sheetAngle + sailInc){
-        sailAngle -= sailInc;
-      }
-    }
-
-    // calculate sail forces
+    // calculate sail coefficients
     if(sailWindAngle < Math.PI) {
       sailLiftAngle = windAngle + (Math.PI / 2);
       sailLc = findSailLiftCoef(sailWindAngle);
@@ -315,24 +446,62 @@
       sailDc = findSailDragCoef((2 * Math.PI) - sailWindAngle);
     }
 
+    // turn sail based on wind and sheet
+    if (trainSailMode == false) {
+      // use sheet to control sail
+      if(Math.sin(sailWindAngle) > 0) {
+        if(sailAngle > - sheetAngle + sailInc){
+          // wind blowing sail to starboard
+          sailAngle -= sailInc * millis * sailDc;
+        } else if(sailAngle < - sheetAngle - sailInc){
+          // sheet pulling sail to port
+          sailAngle += sailInc * millis / 10;
+        }
+      } else {
+        if(sailAngle < sheetAngle - sailInc){
+          // wind blowing sail to port
+          sailAngle += sailInc * millis * sailDc;
+
+        } else if(sailAngle > sheetAngle + sailInc){
+          // sheet pulling sail to starboard
+          sailAngle -= sailInc * millis / 10;
+        }
+      }
+      // correct any movements beyond sheet limits
+      if (sailAngle > sheetAngle) {
+        sailAngle = sheetAngle;
+      } else if (sailAngle < - sheetAngle) {
+        sailAngle = -sheetAngle;
+      }
+    }
+
+    // calculate sail forces
     sailDragAngle = (windAngle + Math.PI) % (2 * Math.PI);
 
     sailLiftForce = forceConstant * windSpeed ** 2 * sailLc;
     sailDragForce = forceConstant * windSpeed ** 2 * sailDc;
-    boatSailLiftAngle = boatHeading - windAngle;
+    //boatSailLiftAngle = boatHeading - windAngle;
     //boatSailLiftAngle = sailLiftAngle - boatHeading;
-    boatSailDragAngle = boatHeading - windAngle;
+    if (sailLiftAngle > 0) {
+      boatSailLiftAngle = sailLiftAngle - boatHeading;
+    } else {
+      boatSailLiftAngle = sailLiftAngle - boatHeading + 2 * Math.PI;
+    }
+    //boatSailDragAngle = boatHeading - windAngle;
     //boatSailPartForForce = sailLiftForce * Math.cos(boatSailLiftAngle);
     //boatSailPartBackForce = sailDragForce * Math.cos(boatWindAngle);
-    boatSailForForce = sailLiftForce * Math.abs(Math.sin(boatWindAngle)) - sailDragForce * Math.cos(boatWindAngle);
-    boatSailSideForce = sailLiftForce * Math.cos(boatWindAngle) + sailDragForce * Math.sin(boatWindAngle);
-    //boatSailForForce = sailLiftForce * Math.cos(boatSailLiftAngle) - sailDragForce * Math.cos(boatWindAngle);
-    //boatSailSideForce = sailLiftForce * Math.sin(boatSailLiftAngle) - sailDragForce * Math.sin(boatWindAngle);
+    //boatSailForForce = sailLiftForce * Math.abs(Math.sin(boatWindAngle)) - sailDragForce * Math.cos(boatWindAngle);
+    //boatSailSideForce = sailLiftForce * Math.cos(boatWindAngle) + sailDragForce * Math.sin(boatWindAngle);
+    boatSailForForce = sailLiftForce * Math.cos(boatSailLiftAngle) - sailDragForce * Math.cos(boatWindAngle);
+    boatSailSideForce = sailLiftForce * Math.sin(boatSailLiftAngle) + sailDragForce * Math.sin(boatWindAngle);
 
     // Quick fix - calc speed directly from forces
-    boatSpeed = Math.sqrt(boatSailForForce ** 2 + (boatSailSideForce * sideForceConstant) ** 2);
-    boatDirection = boatHeading + Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed);
+    //boatSpeed = Math.sqrt(boatSailForForce ** 2 + (boatSailSideForce * sideForceConstant) ** 2);
+    //boatDirection = boatHeading + Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed);
+    boatDirection = boatHeading + Math.atan((boatSailSideForce * sideForceConstant) / boatSailForForce);
+    boatSpeed = boatSailForForce / Math.cos(Math.atan(boatSailSideForce * sideForceConstant) / boatSailForForce);
 
+    /*
     ctx.font = "20px Arial";
     ctx.textAlign = "left";
     ctx.strokeText(rad2deg(boatHeading), 10, 20);
@@ -340,33 +509,39 @@
     ctx.strokeText(rad2deg(sailAngle), 10, 60);
     ctx.strokeText(rad2deg(sailWindAngle), 10, 80);
 
-    //ctx.strokeText(sailLiftAngle, 10, 110);
-    //ctx.strokeText(sailDragAngle, 10, 130);
+    ctx.strokeText(rad2deg(sailLiftAngle), 10, 110);
+    ctx.strokeText(rad2deg(sailDragAngle), 10, 130);
 
-    ctx.strokeText(rad2deg(boatWindAngle), 10, 160);
-    ctx.strokeText(Math.sin(boatWindAngle), 10, 180);
-    ctx.strokeText(Math.cos(boatWindAngle), 10, 200);
+    ctx.strokeText(rad2deg(boatSailLiftAngle), 10, 160);
+    ctx.strokeText(Math.sin(boatSailLiftAngle), 10, 180);
+    ctx.strokeText(Math.cos(boatSailLiftAngle), 10, 200);
+
+    ctx.strokeText(rad2deg(boatWindAngle), 10, 230);
+    ctx.strokeText(Math.sin(boatWindAngle), 10, 250);
+    ctx.strokeText(Math.cos(boatWindAngle), 10, 270);
+
 
     //ctx.strokeText(sailLc, 10, 190);
     //ctx.strokeText(sailDc, 10, 210);
 
-    ctx.strokeText(sailLiftForce, 10, 240);
-    ctx.strokeText(sailDragForce, 10, 260);
+    //ctx.strokeText(sailLiftForce, 10, 240);
+    //ctx.strokeText(sailDragForce, 10, 260);
 
-    ctx.strokeText(boatSailForForce, 10, 290);
-    ctx.strokeText(boatSailSideForce, 10, 310);
-    ctx.strokeText(rad2deg(Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed)), 10, 330);
+    ctx.strokeText(boatSailForForce, 10, 300);
+    ctx.strokeText(boatSailSideForce, 10, 320);
+    ctx.strokeText(rad2deg(Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed)), 10, 340);
 
     ctx.strokeText(boatSpeed, 10, 380);
     ctx.strokeText(rad2deg(boatDirection), 10, 4000);
-
+    */
 
     // calc dx and dy from heading and speed
-    //boatDirection = boatHeading;
-    dx = Math.sin(boatDirection) * boatSpeed / 100;
-    dy = - Math.cos(boatDirection) * boatSpeed / 100;
-    //x += dx;
-    //y += dy;
+    dx = Math.sin(boatDirection) * boatSpeed * millis / 1000;
+    dy = - Math.cos(boatDirection) * boatSpeed * millis / 1000;
+    if (fixBoat == false) {
+      x += dx;
+      y += dy;
+    }
 
     // move boat but checking for edges
     if(x + dx > canvas.width - (boatWidth / 2)) {
@@ -416,38 +591,81 @@
 
 
     // parse key presses
-    if(rightPressed) {
-      boatHeading += steerInc;
-    }
-    else if(leftPressed) {
-      boatHeading -= steerInc;
-    }
-    boatHeading = boatHeading % (2 * Math.PI)
-    if(boatHeading < 0) {
-      boatHeading += 2 * Math.PI;
+
+    if (gameState == 0 && spacePressed && gameMode) {
+      gameState += 1;
     }
 
-    if(numberPressed) {
-      sheetAngle = ((sheetLevel - 1) * (maxSailAngle - minSailAngle) / numSheetLevels) + minSailAngle;
+    if (steeringFixed == false) {
+      if(rightPressed) {
+        boatHeading += steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp) * millis / 10;
+      }
+      else if(leftPressed) {
+        boatHeading -= steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp) * millis / 10;
+      }
+      boatHeading = boatHeading % (2 * Math.PI)
+      if(boatHeading < 0) {
+        boatHeading += 2 * Math.PI;
+      }
     }
 
-    /* up down arrow keys to control sheet
-    if(upPressed) {
-      sheetAngle += sailInc;
-      if (sheetAngle > maxSailAngle){
-        sheetAngle = maxSailAngle;
-      }
-    }
-    else if(downPressed) {
-      sheetAngle -= sailInc;
-      if (sheetAngle < 0){
-        sheetAngle = 0;
-      }
-    }
+    /*
+    ctx.font = "20px Arial";
+    ctx.textAlign = "left";
+    ctx.strokeText(boatSpeed, 10, 20);
+    ctx.strokeText(Math.max(Math.min(boatSpeed / 150, 1), steerResp), 10, 40);
     */
 
+
+    if (trainSailMode) {
+      if (sailFixed == false) {
+        //up down arrow keys to control sail directly
+        if(upPressed) {
+          sailAngle += sailInc;
+          if (sailAngle > maxSailAngle){
+            sailAngle = maxSailAngle;
+          }
+        }
+        else if(downPressed) {
+          sailAngle -= sailInc;
+          if (sailAngle < -maxSailAngle){
+            sailAngle = -maxSailAngle;
+          }
+        }
+      }
+    } else if (sheetArrows) {
+      //up down arrow keys to control sheet
+      if(upPressed) {
+        sheetAngle += sailInc;
+        if (sheetAngle > maxSailAngle){
+          sheetAngle = maxSailAngle;
+        }
+      }
+      else if(downPressed) {
+        sheetAngle -= sailInc;
+        if (sheetAngle < 0){
+          sheetAngle = 0;
+        }
+      }
+    } else {
+      if(numberPressed) {
+        sheetAngle = ((sheetLevel - 1) * (maxSailAngle - minSailAngle) / numSheetLevels) + minSailAngle;
+      }
+    }
   }
-  setInterval(draw, 10);
+
+  function gameLoop() {
+    millis = Date.now() - oldTimeStamp;
+    oldTimeStamp = Date.now();
+
+    update(millis);
+    draw();
+    window.requestAnimationFrame(gameLoop);
+  }
+
+  window.requestAnimationFrame(gameLoop);
+
+//  setInterval(gameLoop, 10);
 
   document.addEventListener("keydown", keyDownHandler, false);
   document.addEventListener("keyup", keyUpHandler, false);
@@ -469,6 +687,9 @@
           numberPressed = true;
           sheetLevel = (e.which || e.keyCode) - 48;
       }
+      else if (e.keyCode === 32 || e.key === ' ') {
+        spacePressed = true;
+      }
   }
 
   function keyUpHandler(e) {
@@ -486,6 +707,9 @@
       }
       else if((e.which || e.keyCode) > 48 && (e.which || e.keyCode) < numSheetLevels + 49) {
           numberPressed = false;
+      }
+      else if (e.keyCode === 32 || e.key === ' ') {
+        spacePressed = false;
       }
   }
 
