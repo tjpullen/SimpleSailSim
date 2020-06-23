@@ -19,6 +19,7 @@
 
 <h2>Steer with Left & Right arrows.</h2>
 <h2>Control main sheet with numbers 1 - 5.</h2>
+<h2>Aim: hit the target.</h2>
 
 <script>
 	// JavaScript code goes here
@@ -28,11 +29,11 @@
   var millis = 0;
   var oldTimeStamp = Date.now();
 
-  const gameMode = false;
-  const showMessages = false; // display start and end messages
+  const gameMode = true;
+  const showMessages = true; // display start and end messages
   var gameState = 0;
   const trainSailMode = false; // control sail directly rather than with sheet
-  var fixBoat = false; // keep boat fixed and not moving
+  var fixBoat = true; // keep boat fixed and not moving
   const sheetArrows = false; // control sheet using arrow keys instead of numbers
   var showTimer = false;
   const landYacht = false; // boat cannot move sideways
@@ -100,10 +101,10 @@
   var upPressed = false;
   var downPressed = false;
 
-  var targetNumber = 0;
+  var targetNumber = 1;
   var targetRadius = 50;
   var targetPlacing = 260;
-  var targetRotation = 0 * (Math.PI / 180);
+  var targetRotation = 45 * (Math.PI / 180);
   var targetXOffset = 0;
   var targetYOffset = 0;
   var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);

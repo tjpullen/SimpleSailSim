@@ -18,8 +18,8 @@
 <canvas id="myCanvas" width="1000" height="800"></canvas>
 
 <h2>Steer with Left & Right arrows.</h2>
-<h2>Control the sail with Up & Down arrows.</h2>
-<h2>Aim your boat for a target, set the sail, then press Spacebar to start.</h2>
+<h2>Control main sheet with numbers 1 - 5.</h2>
+<h2>Aim: hit the target.</h2>
 
 <script>
 	// JavaScript code goes here
@@ -30,13 +30,13 @@
   var oldTimeStamp = Date.now();
 
   const gameMode = true;
-  const showMessages = false; // display start and end messages
+  const showMessages = true; // display start and end messages
   var gameState = 0;
-  const trainSailMode = true; // control sail directly rather than with sheet
+  const trainSailMode = false; // control sail directly rather than with sheet
   var fixBoat = true; // keep boat fixed and not moving
   const sheetArrows = false; // control sheet using arrow keys instead of numbers
   var showTimer = false;
-  const landYacht = true; // boat cannot move sideways
+  const landYacht = false; // boat cannot move sideways
   var steeringFixed = false;
   var sailFixed = false;
 
@@ -69,7 +69,7 @@
   var sheetLevel = 1;
 
   var startMessage = "Press Spacebar to start"
-  var endMessage = "";
+  var endMessage = "Congratulations!";
 
   var windAngle = 0;
   var windSpeed = 100;
@@ -101,10 +101,10 @@
   var upPressed = false;
   var downPressed = false;
 
-  var targetNumber = 8;
+  var targetNumber = 1;
   var targetRadius = 50;
   var targetPlacing = 260;
-  var targetRotation = 0;
+  var targetRotation = 0 * (Math.PI / 180);
   var targetXOffset = 0;
   var targetYOffset = 0;
   var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
@@ -184,13 +184,17 @@
   }
 
   function displayMessage() {
-    if ((millis / 500) % 2 >= 1 && gameState != 1) {
+    if ((timer / 50) % 2 >= 1 && gameState != 1) {
       var message = "";
 
       if (gameState == 0) {
         message = startMessage;
       } else {
-        message = endMessage;
+        if(endMessage.length > 0) {
+          message = endMessage;
+        } else {
+          message = "Time - " + formatTime(gameTimer, false)
+        }
       }
 
       ctx.fillStyle = "black";
@@ -213,22 +217,27 @@
     }
   }
 
-  function drawTimer(flash = true){
+  function formatTime(dispTime = gameTimer, flash = true) {
+    var minutes = Math.floor((dispTime % (1000 * 60 * 60)) / (1000 * 60));
+    var seconds = Math.floor((dispTime % (1000 * 60 )) / 1000);
     var sep = ":";
-
-    if (flash && gameTimer / 500 % 2 >= 1) {
-      sep = " ";
-    }
-
-    var minutes = Math.floor((gameTimer % (1000 * 60 * 60)) / (1000 * 60));
-    var seconds = Math.floor((gameTimer % (1000 * 60 )) / 1000);
+    var message = "";
 
     if (seconds < 10) {
       seconds = "0" + seconds;
     }
 
-    var message = minutes + sep + seconds;
-    endMessage = "Time - " + message;
+    if (flash && gameTimer / 500 % 2 >= 1) {
+      sep = " ";
+    }
+
+    message = minutes + sep + seconds;
+    return message;
+  }
+
+  function drawTimer(flash = true){
+
+    var message = formatTime(gameTimer, flash);
 
     ctx.font = "bold 30px Lucida Console";
     ctx.textAlign = "left";
@@ -341,7 +350,6 @@
     ctx.fillStyle = "#FFFF00";
     ctx.fill();
 
-
     // Draw sheet
     if (trainSailMode != true) {
       ctx.beginPath();
@@ -351,7 +359,6 @@
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-
 
     // Draw mast
     ctx.beginPath();
@@ -417,8 +424,8 @@
     }
 
     if (gameState > 0 && gameMode) {
-      steeringFixed = true;
-      sailFixed = true;
+      //steeringFixed = true;
+      //sailFixed = true;
     }
 
     // calculate sail angle to wind
@@ -454,10 +461,17 @@
         if(sailAngle < sheetAngle - sailInc){
           // wind blowing sail to port
           sailAngle += sailInc * millis * sailDc;
+
         } else if(sailAngle > sheetAngle + sailInc){
           // sheet pulling sail to starboard
           sailAngle -= sailInc * millis / 10;
         }
+      }
+      // correct any movements beyond sheet limits
+      if (sailAngle > sheetAngle) {
+        sailAngle = sheetAngle;
+      } else if (sailAngle < - sheetAngle) {
+        sailAngle = -sheetAngle;
       }
     }
 
