@@ -16,7 +16,7 @@ To learn how the sail propels the boat. Point the boat and set the sail then wat
 
 *Note - This is a simple setup where the boat doesn't slip sideways and sail angle is controlled directly rather than through a sheet.*
 
-## Game 2: 1 target games
+### Game 2: 1 target games
 
 Sail the boat to hit a target of different points of sail:
 
@@ -28,13 +28,13 @@ Sail the boat to hit a target of different points of sail:
 
 *Note - This is a more realistic setup where the boat can slip sideways and sail is controlled through a sheet.*
 
-## Game 3: 3 target game
+### Game 3: 3 target game
 
 [sail_3_targets.html](sail_3_targets.html)
 
 Sail the boat to hit the targets as quickly as possible.
 
-## Game 4: 8 target game
+### Game 4: 8 target game
 
 [sail_8_targets.html](sail_8_targets.html)
 
