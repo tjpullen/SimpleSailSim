@@ -18,7 +18,8 @@
 <canvas id="myCanvas" width="1000" height="800"></canvas>
 
 <h2>Steer with Left & Right arrows.</h2>
-<h2>Control the sail with numbers 1 - 5.</h2>
+<h2>Control the sail with Up & Down arrows.</h2>
+<h2>Aim your boat for a target, set the sail, then press Spacebar to start.</h2>
 
 <script>
 	// JavaScript code goes here
@@ -28,14 +29,14 @@
   var millis = 0;
   var oldTimeStamp = Date.now();
 
-  const gameMode = false;
+  const gameMode = true;
   const showMessages = false; // display start and end messages
   var gameState = 0;
-  const trainSailMode = false; // control sail directly rather than with sheet
-  var fixBoat = false; // keep boat fixed and not moving
+  const trainSailMode = true; // control sail directly rather than with sheet
+  var fixBoat = true; // keep boat fixed and not moving
   const sheetArrows = false; // control sheet using arrow keys instead of numbers
   var showTimer = false;
-  const landYacht = false; // boat cannot move sideways
+  const landYacht = true; // boat cannot move sideways
   var steeringFixed = false;
   var sailFixed = false;
 
@@ -340,6 +341,7 @@
     ctx.fillStyle = "#FFFF00";
     ctx.fill();
 
+
     // Draw sheet
     if (trainSailMode != true) {
       ctx.beginPath();
@@ -349,6 +351,7 @@
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+
 
     // Draw mast
     ctx.beginPath();
@@ -451,17 +454,10 @@
         if(sailAngle < sheetAngle - sailInc){
           // wind blowing sail to port
           sailAngle += sailInc * millis * sailDc;
-
         } else if(sailAngle > sheetAngle + sailInc){
           // sheet pulling sail to starboard
           sailAngle -= sailInc * millis / 10;
         }
-      }
-      // correct any movements beyond sheet limits
-      if (sailAngle > sheetAngle) {
-        sailAngle = sheetAngle;
-      } else if (sailAngle < - sheetAngle) {
-        sailAngle = -sheetAngle;
       }
     }
 

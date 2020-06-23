@@ -18,28 +18,16 @@
 <canvas id="myCanvas" width="1000" height="800"></canvas>
 
 <h2>Steer with Left & Right arrows.</h2>
-<h2>Control the sail with numbers 1 - 5.</h2>
+<h2>Control main sheet with numbers 1 - 5.</h2>
+<h2>Aim: hit all the targets in any order as quick as you can.</h2>
 
 <script>
 	// JavaScript code goes here
   var canvas = document.getElementById("myCanvas");
   var ctx = canvas.getContext("2d");
 
-  var millis = 0;
-  var oldTimeStamp = Date.now();
-
-  const gameMode = false;
-  const showMessages = false; // display start and end messages
   var gameState = 0;
-  const trainSailMode = false; // control sail directly rather than with sheet
-  var fixBoat = false; // keep boat fixed and not moving
-  const sheetArrows = false; // control sheet using arrow keys instead of numbers
-  var showTimer = false;
-  const landYacht = false; // boat cannot move sideways
-  var steeringFixed = false;
-  var sailFixed = false;
-
-  var timer = 0;
+  var setTime = new Date().getTime();
   var gameTimer = 0;
 
   var x = canvas.width/2;
@@ -64,6 +52,8 @@
   const maxSailAngle = Math.PI / 2;
   const minSailAngle = 5 * (Math.PI / 180);
   const numSheetLevels = 5;
+  const trainSailMode = false; // control sail directly rather than with sheet
+  var fixBoat = true; // keep boat fixed and not moving
   var sheetAngle = 0;
   var sheetLevel = 1;
 
@@ -80,12 +70,8 @@
   var sailDc = 0;
   var sailLiftForce = 0;
   var sailDragForce = 0;
-  const forceConstant = 0.013;
+  var forceConstant = 0.013;
   var sideForceConstant = 0.08;
-
-  if (landYacht) {
-    sideForceConstant = 0;
-  }
 
   var boatSailLiftAngle = 0;
   var boatSailDragAngle = 0;
@@ -97,8 +83,6 @@
   var leftPressed = false;
   var numberPressed = true;
   var spacePressed = false;
-  var upPressed = false;
-  var downPressed = false;
 
   var targetNumber = 8;
   var targetRadius = 50;
@@ -108,6 +92,8 @@
   var targetYOffset = 0;
   var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
   var targetCollision = [];
+
+  var timer = 0;
 
   function placeTargets(number, radius, placing, rotation, xoffset = 0, yoffset = 0) {
     var targetAngle = 2 * Math.PI / number;
@@ -183,7 +169,7 @@
   }
 
   function displayMessage() {
-    if ((millis / 500) % 2 >= 1 && gameState != 1) {
+    if ((timer / 50) % 2 >= 1 && gameState != 1) {
       var message = "";
 
       if (gameState == 0) {
@@ -192,33 +178,29 @@
         message = endMessage;
       }
 
-      ctx.fillStyle = "black";
-      ctx.strokeStyle = "white";
-      ctx.lineWidth = 0.2;
-      ctx.font = "bold 60 px Arial";
+      ctx.fillStyle = "black"
+      ctx.font = "60 px Arial";
       ctx.textAlign = "center";
       ctx.fillText(message, canvas.width / 2, canvas.height / 2 + 30);
-      ctx.strokeText(message, canvas.width / 2, canvas.height / 2 + 30);
     }
   }
 
-  function updateTimer(millis, run = true, reset = false) {
+  function drawTimer(run = true, reset = false){
+    var sep = ":"
+
     if (reset) {
       gameTimer = 0;
     }
 
     if (run) {
-      gameTimer += millis;
-    }
-  }
-
-  function drawTimer(flash = true){
-    var sep = ":";
-
-    if (flash && gameTimer / 500 % 2 >= 1) {
-      sep = " ";
+      gameTimer += 10;
+      if ((gameTimer/500) % 2 >= 1) {
+        sep = " ";
+      }
     }
 
+    //var now = new Date().getTime();
+    //var distance = now - setTime;
     var minutes = Math.floor((gameTimer % (1000 * 60 * 60)) / (1000 * 60));
     var seconds = Math.floor((gameTimer % (1000 * 60 )) / 1000);
 
@@ -233,7 +215,7 @@
     ctx.textAlign = "left";
     ctx.fillStyle = "black";
     ctx.fillText(message, 20, 40);
-    //ctx.fillText(gameTimer / 500 % 2 < 1, 20, 80);
+    //ctx.fillText(gameState, 20, 80);
   }
 
   function drawWind(number = 1, moving = 0, xNumber = 2) {
@@ -340,15 +322,15 @@
     ctx.fillStyle = "#FFFF00";
     ctx.fill();
 
+
     // Draw sheet
-    if (trainSailMode != true) {
-      ctx.beginPath();
-      ctx.rotate(- sailAngle / 2);
-      ctx.ellipse(0, b2, xrad, yrad, 0, 0, Math.PI);
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
+    ctx.beginPath();
+    ctx.rotate(- sailAngle / 2);
+    ctx.ellipse(0, b2, xrad, yrad, 0, 0, Math.PI);
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
 
     // Draw mast
     ctx.beginPath();
@@ -385,37 +367,24 @@
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    timer += 1;
 
-    drawWind(3, 5, 7);
-    if (showTimer) {
-      drawTimer(gameState == 1);
-    }
-    drawBoat();
-    drawTargets();
-    if (showMessages) {
-      displayMessage();
-    }
-  }
-
-  function update(millis) {
-
-    // update timer
-    updateTimer(millis, gameState == 1);
-
-    timer += millis / 10;
-
-    // update game controls
-    if (gameState > 0 && gameMode) {
+    if (gameState > 0) {
       fixBoat = false;
     }
-
-    if (gameState == 1 && targetRemaining() == 0 && gameMode) {
+    if (gameState == 1 && targetRemaining() == 0) {
       gameState += 1;
     }
 
-    if (gameState > 0 && gameMode) {
-      steeringFixed = true;
-      sailFixed = true;
+    drawWind(3, 5, 7);
+    drawTimer((gameState == 1));
+    drawBoat();
+    drawTargets();
+    displayMessage();
+
+    // end game if all targets hit
+    for (var i = 0; i < targetNumber; i++) {
+
     }
 
     // calculate sail angle to wind
@@ -425,7 +394,22 @@
       sailWindAngle += 2 * Math.PI;
     }
 
-    // calculate sail coefficients
+    // turn sail based on wind and sheet
+    if(Math.sin(sailWindAngle) > 0) {
+      if(sailAngle > - sheetAngle + sailInc){
+        sailAngle -= sailInc;
+      } else if(sailAngle < - sheetAngle - sailInc){
+        sailAngle += sailInc;
+      }
+    } else {
+      if(sailAngle < sheetAngle - sailInc){
+        sailAngle += sailInc;
+      } else if(sailAngle > sheetAngle + sailInc){
+        sailAngle -= sailInc;
+      }
+    }
+
+    // calculate sail forces
     if(sailWindAngle < Math.PI) {
       sailLiftAngle = windAngle + (Math.PI / 2);
       sailLc = findSailLiftCoef(sailWindAngle);
@@ -436,36 +420,6 @@
       sailDc = findSailDragCoef((2 * Math.PI) - sailWindAngle);
     }
 
-    // turn sail based on wind and sheet
-    if (trainSailMode == false) {
-      // use sheet to control sail
-      if(Math.sin(sailWindAngle) > 0) {
-        if(sailAngle > - sheetAngle + sailInc){
-          // wind blowing sail to starboard
-          sailAngle -= sailInc * millis * sailDc;
-        } else if(sailAngle < - sheetAngle - sailInc){
-          // sheet pulling sail to port
-          sailAngle += sailInc * millis / 10;
-        }
-      } else {
-        if(sailAngle < sheetAngle - sailInc){
-          // wind blowing sail to port
-          sailAngle += sailInc * millis * sailDc;
-
-        } else if(sailAngle > sheetAngle + sailInc){
-          // sheet pulling sail to starboard
-          sailAngle -= sailInc * millis / 10;
-        }
-      }
-      // correct any movements beyond sheet limits
-      if (sailAngle > sheetAngle) {
-        sailAngle = sheetAngle;
-      } else if (sailAngle < - sheetAngle) {
-        sailAngle = -sheetAngle;
-      }
-    }
-
-    // calculate sail forces
     sailDragAngle = (windAngle + Math.PI) % (2 * Math.PI);
 
     sailLiftForce = forceConstant * windSpeed ** 2 * sailLc;
@@ -526,8 +480,9 @@
     */
 
     // calc dx and dy from heading and speed
-    dx = Math.sin(boatDirection) * boatSpeed * millis / 1000;
-    dy = - Math.cos(boatDirection) * boatSpeed * millis / 1000;
+    //boatDirection = boatHeading;
+    dx = Math.sin(boatDirection) * boatSpeed / 100;
+    dy = - Math.cos(boatDirection) * boatSpeed / 100;
     if (fixBoat == false) {
       x += dx;
       y += dy;
@@ -582,21 +537,19 @@
 
     // parse key presses
 
-    if (gameState == 0 && spacePressed && gameMode) {
+    if (gameState == 0 && spacePressed) {
       gameState += 1;
     }
 
-    if (steeringFixed == false) {
-      if(rightPressed) {
-        boatHeading += steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp) * millis / 10;
-      }
-      else if(leftPressed) {
-        boatHeading -= steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp) * millis / 10;
-      }
-      boatHeading = boatHeading % (2 * Math.PI)
-      if(boatHeading < 0) {
-        boatHeading += 2 * Math.PI;
-      }
+    if(rightPressed) {
+      boatHeading += steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp);
+    }
+    else if(leftPressed) {
+      boatHeading -= steerInc * Math.max(Math.min(boatSpeed / 150, 1), steerResp);
+    }
+    boatHeading = boatHeading % (2 * Math.PI)
+    if(boatHeading < 0) {
+      boatHeading += 2 * Math.PI;
     }
 
     /*
@@ -608,22 +561,6 @@
 
 
     if (trainSailMode) {
-      if (sailFixed == false) {
-        //up down arrow keys to control sail directly
-        if(upPressed) {
-          sailAngle += sailInc;
-          if (sailAngle > maxSailAngle){
-            sailAngle = maxSailAngle;
-          }
-        }
-        else if(downPressed) {
-          sailAngle -= sailInc;
-          if (sailAngle < -maxSailAngle){
-            sailAngle = -maxSailAngle;
-          }
-        }
-      }
-    } else if (sheetArrows) {
       //up down arrow keys to control sheet
       if(upPressed) {
         sheetAngle += sailInc;
@@ -643,19 +580,7 @@
       }
     }
   }
-
-  function gameLoop() {
-    millis = Date.now() - oldTimeStamp;
-    oldTimeStamp = Date.now();
-
-    update(millis);
-    draw();
-    window.requestAnimationFrame(gameLoop);
-  }
-
-  window.requestAnimationFrame(gameLoop);
-
-//  setInterval(gameLoop, 10);
+  setInterval(draw, 10);
 
   document.addEventListener("keydown", keyDownHandler, false);
   document.addEventListener("keyup", keyUpHandler, false);
