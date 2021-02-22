@@ -17,11 +17,17 @@
 
 <canvas id="myCanvas" width="1000" height="800"></canvas>
 
+ <! -- Instructions - appear below canvas -->
 <h2>Steer with Left & Right arrows.</h2>
 <h2>Control main sheet with numbers 1 - 5.</h2>
 
 <script>
 	// JavaScript code goes here
+
+  /////////////////////////////////////////////////////////
+  // setup variables
+  /////////////////////////////////////////////////////////
+
   var canvas = document.getElementById("myCanvas");
   var ctx = canvas.getContext("2d");
 
@@ -30,6 +36,7 @@
 
   const gameMode = false;
   const showMessages = false; // display start and end messages
+  const debugMode = true; // display more information during debugging
   var gameState = 0;
   const trainSailMode = false; // control sail directly rather than with sheet
   var fixBoat = false; // keep boat fixed and not moving
@@ -42,19 +49,25 @@
   var timer = 0;
   var gameTimer = 0;
 
+  // start boat in centre of canvas
   var x = canvas.width/2;
   var y = canvas.height/2;
 
+  // delta x and y for movement
   var dx = 1;
   var dy = -1;
 
   var boatSpeed = 0;
   var boatDirection = 0;
 
-  const ballRadius = 10;
+  // boat size & shape
+  //const ballRadius = 10;
   const boatWidth = 25;
   const boatLength = 60;
   const mastRadius = 3;
+
+  // boat polygon
+  //var boatPolygon = {};
 
   var boatHeading = 2 * Math.PI;
   var sailAngle = 0 * (Math.PI / 180);
@@ -108,6 +121,10 @@
   var targetYOffset = 0;
   var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
   var targetCollision = [];
+
+  /////////////////////////////////////////////////////////
+  // functions
+  /////////////////////////////////////////////////////////
 
   function placeTargets(number, radius, placing, rotation, xoffset = 0, yoffset = 0) {
     var targetAngle = 2 * Math.PI / number;
@@ -392,6 +409,40 @@
     return degrees;
   }
 
+  function debugDisplay() {
+    ctx.font = "20px Arial";
+    ctx.textAlign = "left";
+    ctx.strokeText(''.concat("bHead: ", rad2deg(boatHeading)), 10, 20);
+    ctx.strokeText(''.concat("bDir: ", rad2deg(boatDirection)), 10, 40);
+    ctx.strokeText(''.concat("sAng: ", rad2deg(sailAngle)), 10, 60);
+    ctx.strokeText(''.concat("sWindAng: ", rad2deg(sailWindAngle)), 10, 80);
+
+    ctx.strokeText(''.concat("sLiftAng: ", rad2deg(sailLiftAngle)), 10, 110);
+    ctx.strokeText(''.concat("sDragAng: ", rad2deg(sailDragAngle)), 10, 130);
+
+    ctx.strokeText(''.concat("bSLiftAng: ", rad2deg(boatSailLiftAngle)), 10, 160);
+    ctx.strokeText(''.concat("sin(bSLiftAng): ", Math.sin(boatSailLiftAngle)), 10, 180);
+    ctx.strokeText(''.concat("cos(bSLiftAng): ", Math.cos(boatSailLiftAngle)), 10, 200);
+
+    ctx.strokeText(''.concat("bWAng: ", rad2deg(boatWindAngle)), 10, 230);
+    ctx.strokeText(''.concat("sin(bWAng): ", Math.sin(boatWindAngle)), 10, 250);
+    ctx.strokeText(''.concat("cos(bWAng): ", Math.cos(boatWindAngle)), 10, 270);
+
+
+    //ctx.strokeText(sailLc, 10, 190);
+    //ctx.strokeText(sailDc, 10, 210);
+
+    //ctx.strokeText(sailLiftForce, 10, 240);
+    //ctx.strokeText(sailDragForce, 10, 260);
+
+    ctx.strokeText(''.concat("bSForForce: ", boatSailForForce), 10, 300);
+    ctx.strokeText(''.concat("bSSideForce: ", boatSailSideForce), 10, 320);
+    ctx.strokeText(rad2deg(Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed)), 10, 340);
+
+    ctx.strokeText(''.concat("bSpeed: ", boatSpeed), 10, 380);
+    ctx.strokeText(''.concat("bDir: ", rad2deg(boatDirection)), 10, 400);
+  }
+
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -403,6 +454,9 @@
     drawTargets();
     if (showMessages) {
       displayMessage();
+    }
+    if (debugMode) {
+      debugDisplay();
     }
   }
 
@@ -500,39 +554,7 @@
     boatDirection = boatHeading + Math.atan((boatSailSideForce * sideForceConstant) / boatSailForForce);
     boatSpeed = boatSailForForce / Math.cos(Math.atan(boatSailSideForce * sideForceConstant) / boatSailForForce);
 
-    /*
-    ctx.font = "20px Arial";
-    ctx.textAlign = "left";
-    ctx.strokeText(rad2deg(boatHeading), 10, 20);
-    ctx.strokeText(rad2deg(boatDirection), 10, 40);
-    ctx.strokeText(rad2deg(sailAngle), 10, 60);
-    ctx.strokeText(rad2deg(sailWindAngle), 10, 80);
 
-    ctx.strokeText(rad2deg(sailLiftAngle), 10, 110);
-    ctx.strokeText(rad2deg(sailDragAngle), 10, 130);
-
-    ctx.strokeText(rad2deg(boatSailLiftAngle), 10, 160);
-    ctx.strokeText(Math.sin(boatSailLiftAngle), 10, 180);
-    ctx.strokeText(Math.cos(boatSailLiftAngle), 10, 200);
-
-    ctx.strokeText(rad2deg(boatWindAngle), 10, 230);
-    ctx.strokeText(Math.sin(boatWindAngle), 10, 250);
-    ctx.strokeText(Math.cos(boatWindAngle), 10, 270);
-
-
-    //ctx.strokeText(sailLc, 10, 190);
-    //ctx.strokeText(sailDc, 10, 210);
-
-    //ctx.strokeText(sailLiftForce, 10, 240);
-    //ctx.strokeText(sailDragForce, 10, 260);
-
-    ctx.strokeText(boatSailForForce, 10, 300);
-    ctx.strokeText(boatSailSideForce, 10, 320);
-    ctx.strokeText(rad2deg(Math.asin((boatSailSideForce * sideForceConstant) / boatSpeed)), 10, 340);
-
-    ctx.strokeText(boatSpeed, 10, 380);
-    ctx.strokeText(rad2deg(boatDirection), 10, 4000);
-    */
 
     // calc dx and dy from heading and speed
     dx = Math.sin(boatDirection) * boatSpeed * millis / 1000;
@@ -653,6 +675,10 @@
     }
   }
 
+  /////////////////////////////////////////////////////////
+  // game loop
+  /////////////////////////////////////////////////////////
+
   function gameLoop() {
     millis = Date.now() - oldTimeStamp;
     oldTimeStamp = Date.now();
@@ -665,6 +691,10 @@
   window.requestAnimationFrame(gameLoop);
 
 //  setInterval(gameLoop, 10);
+
+  /////////////////////////////////////////////////////////
+  // detect keystrokes
+  /////////////////////////////////////////////////////////
 
   document.addEventListener("keydown", keyDownHandler, false);
   document.addEventListener("keyup", keyUpHandler, false);
