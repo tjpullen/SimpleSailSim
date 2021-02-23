@@ -41,3 +41,22 @@ Sail the boat to hit the targets as quickly as possible. Reload the page to rese
 [sail_8_targets.html](sail_8_targets.html)
 
 As above but with more targets.
+
+### Game 5: 3 buoy practice
+
+[sail_3_buoys.html](sail_3_buoys.html)
+[sail_3_buoys_2.html](sail_3_buoys_2.html)
+
+This time with buoys rather than targets. Two triangular courses to practice sailing around in different orientations.
+
+### Game 6: Triangular courses
+
+[sail_course_1.html](sail_course_1.html)
+
+A triangular course with timing and penalties for hitting buoys.
+
+### Game 7: Double triangular courses
+
+[sail_course_2.html](sail_course_2.html)
+
+As above but with 2 laps.
