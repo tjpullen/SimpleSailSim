@@ -44,8 +44,8 @@ As above but with more targets.
 
 ### Game 5: 3 buoy practice
 
-[sail_3_buoys.html](sail_3_buoys.html)
-[sail_3_buoys_2.html](sail_3_buoys_2.html)
++ [sail_3_buoys.html](sail_3_buoys.html)
++ [sail_3_buoys_2.html](sail_3_buoys_2.html)
 
 This time with buoys rather than targets. Two triangular courses to practice sailing around in different orientations.
 
