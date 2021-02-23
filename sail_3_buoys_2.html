@@ -38,6 +38,7 @@
   const showMessages = false; // display start and end messages
   const debugMode = false; // display more information during debugging
   var gameState = 0;
+  var gameSubState = 0 ; // 0 before cross start, 1 passing buoys, 2 before cross finish
   const trainSailMode = false; // control sail directly rather than with sheet
   var fixBoat = false; // keep boat fixed and not moving
   const sheetArrows = false; // control sheet using arrow keys instead of numbers
@@ -49,15 +50,17 @@
   var penaltyStart = 0; // start time of penalty
 
   var timer = 0;
-  var gameTimer = 0;
+  var gameTimer = -5 * 1000; // timer start time in milliseconds
 
-  const buoyType = false; // set if buoys (true) or targets (false) are used
+  const buoyType = true; // set if buoys (true) or targets (false) are used
   const buoyDelay = 100; // delay before hit buoys are reset in 100ths of second
   const buoyPenalty = 500; // time penalty for hitting buoy in 100ths of second
 
   // start boat in centre of canvas
-  var x = canvas.width/2;
-  var y = canvas.height/2;
+  //var x = canvas.width/2;
+  //var y = canvas.height/2;
+  var x = canvas.width/6;
+  var y = 3 * canvas.height/4;
 
   // delta x and y for movement
   var dx = 1;
@@ -89,6 +92,7 @@
 
   var startMessage = "Press Spacebar to start"
   var endMessage = "Congratulations!";
+  var disqualMessage = "Disqualified!";
 
   var windAngle = 0;
   var windSpeed = 100;
@@ -120,14 +124,31 @@
   var upPressed = false;
   var downPressed = false;
 
-  var targetNumber = 0;
-  var targetRadius = 50;
+  const clockwise = true; // direction of course
+  var targetNumber = 3;
+  var targetRadius = 10;
   var targetPlacing = 260;
-  var targetRotation = 0 * (Math.PI / 180);
+  var targetRotation = -150 * (Math.PI / 180);
   var targetXOffset = 0;
   var targetYOffset = 0;
   var targetCoords = placeTargets(targetNumber, targetRadius, targetPlacing, targetRotation);
+  var lineCoords = placeLines(targetNumber, targetPlacing, targetRotation, clockwise);
   var targetCollision = [];
+  var startLine = [lineCoords[0][0], lineCoords[1][0], lineCoords[2][0], lineCoords[3][0], false];
+  var finishLine = startLine;
+
+  var course = [1, 2]; // order of buoys on course
+  var courseProgress = [0, 0]; // status of current buoy - [buoy number, status] - status
+
+  if (buoyType) {
+    // buoy colours
+    var targetCol1 = "rgba(255, 191, 0, 1)";
+    var targetCol2 = "rgba(255, 0, 0, 1)"
+  } else {
+    // target colours
+    var targetCol1 = "rgba(0, 255, 0, 0.5)";
+    var targetCol2 = "rgba(142, 68, 173, 0.5)"
+  }
   //var targetDirection = 0; // direction from boat to target
 
   /////////////////////////////////////////////////////////
@@ -160,6 +181,226 @@
     ]
   }
 
+  function placeLines(number, placing, rotation, clockwise, xoffset = 0, yoffset = 0) {
+    var targetAngle = 2 * Math.PI / number;
+    var i;
+    var x1coords = [];
+    var y1coords = [];
+    var x2coords = [];
+    var y2coords = [];
+    var hit = [];
+    var x3coords = [];
+    var y3coords = [];
+    var x4coords = [];
+    var y4coords = [];
+
+    var midx = canvas.width / 2 + xoffset;
+    var midy = canvas.height / 2 + yoffset;
+
+    for (i = 0; i < number; i++) {
+        x1coords[i] = placing * Math.sin(rotation + (i * targetAngle)) + canvas.width / 2 + xoffset;
+        y1coords[i] = - placing * Math.cos(rotation + (i * targetAngle)) + canvas.height / 2 + yoffset;
+
+        if (clockwise) {
+          if (x1coords[i] >= midx && y1coords[i] < midy) {
+            x2coords[i] = canvas.width;
+            y2coords[i] = y1coords[i];
+            x3coords[i] = canvas.width;
+            y3coords[i] = 0;
+            x4coords[i] = x1coords[i];
+            y4coords[i] = 0;
+          }
+          if (x1coords[i] > midx && y1coords[i] >= midy) {
+            x2coords[i] = x1coords[i];
+            y2coords[i] = canvas.height;
+            x3coords[i] = canvas.width;
+            y3coords[i] = canvas.height;
+            x4coords[i] = canvas.width;
+            y4coords[i] = y1coords[i];
+          }
+          if (x1coords[i] <= midx && y1coords[i] > midy) {
+            x2coords[i] = 0;
+            y2coords[i] = y1coords[i];
+            x3coords[i] = 0;
+            y3coords[i] = canvas.height;
+            x4coords[i] = x1coords[i];
+            y4coords[i] = canvas.height;
+          }
+          if (x1coords[i] < midx && y1coords[i] <= midy) {
+            x2coords[i] = x1coords[i];
+            y2coords[i] = 0;
+            x3coords[i] = 0;
+            y3coords[i] = 0;
+            x4coords[i] = 0;
+            y4coords[i] = y1coords[i];
+          }
+        } else{
+          if (x1coords[i] > midx && y1coords[i] <= midy) {
+            x2coords[i] = x1coords[i];
+            y2coords[i] = 0;
+            x3coords[i] = canvas.width;
+            y3coords[i] = 0;
+            x4coords[i] = canvas.width;
+            y4coords[i] = y1coords[i];
+          }
+          if (x1coords[i] >= midx && y1coords[i] > midy) {
+            x2coords[i] = canvas.width;
+            y2coords[i] = y1coords[i];
+            x3coords[i] = canvas.width;
+            y3coords[i] = canvas.height;
+            x4coords[i] = x1coords[i];
+            y4coords[i] = canvas.height;
+          }
+          if (x1coords[i] < midx && y1coords[i] >= midy) {
+            x2coords[i] = x1coords[i];
+            y2coords[i] = canvas.height;
+            x3coords[i] = 0;
+            y3coords[i] = canvas.height;
+            x4coords[i] = 0;
+            y4coords[i] = y1coords[i];
+          }
+          if (x1coords[i] <= midx && y1coords[i] < midy) {
+            x2coords[i] = 0;
+            y2coords[i] = y1coords[i];
+            x3coords[i] = 0;
+            y3coords[i] = 0;
+            x4coords[i] = x1coords[i];
+            y4coords[i] = 0;
+          }
+        }
+
+        hit[i] = false;
+    }
+
+    return [
+      x1coords,
+      y1coords,
+      x2coords,
+      y2coords,
+      x3coords,
+      y3coords,
+      x4coords,
+      y4coords,
+      hit,
+    ]
+  }
+
+  function drawLines(number = 0, type = 0) {
+
+    if (number == 0) {
+      var drawNum = lineCoords[0].length;
+    } else {
+      var drawNum = Math.min(number, lineCoords[0].length);
+    }
+
+    for (i = 0; i < drawNum; i++) {
+      ctx.beginPath();
+      ctx.moveTo(lineCoords[0][i], lineCoords[1][i]);
+      ctx.lineTo(lineCoords[2][i], lineCoords[3][i]);
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      if (type > 0) {
+        ctx.beginPath();
+        ctx.moveTo(lineCoords[0][i], lineCoords[1][i]);
+        ctx.lineTo(lineCoords[6][i], lineCoords[7][i]);
+        ctx.strokeStyle = "blue";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      if (type > 2) {
+        ctx.beginPath();
+        ctx.moveTo(lineCoords[0][i], lineCoords[1][i]);
+        ctx.lineTo(lineCoords[4][i], lineCoords[5][i]);
+        ctx.strokeStyle = "green";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+  }
+
+  function detectLineCross() {
+    var i = 0;
+
+    // before start time
+    if (gameSubState == 0) {
+      // switch game substate when timer reaches 0
+      if (gameTimer >= 0) {
+        gameSubState = 1;
+      } else {
+        // detect false start
+        if (lineCircleCollide([startLine[0], startLine[1]], [startLine[2], startLine[3]], [x, y], 3)) {
+          // start line crossed
+          gameState = 3;
+          console.log("line crossed");
+        }
+      }
+    }
+
+    // after start time, before start line cross
+    if (gameSubState == 1) {
+      // detect cross starting line
+      if (lineCircleCollide([startLine[0], startLine[1]], [startLine[2], startLine[3]], [x, y], 3)) {
+        // start line crossed
+        gameSubState = 2;
+        console.log("line crossed");
+      }
+    }
+
+    // pass buoys
+    if (gameSubState == 2) {
+      var courseNo = courseProgress[0];
+      var buoyNo = course[courseNo];
+
+      if (courseProgress[1] == 0) {
+        // detect cross first line
+        if (lineCircleCollide([lineCoords[0][buoyNo], lineCoords[1][buoyNo]], [lineCoords[6][buoyNo], lineCoords[7][buoyNo]], [x, y], 3)) {
+          // first line crossed
+          courseProgress[1] = 1;
+          console.log("line 1 crossed");
+        }
+      }
+
+      if (courseProgress[1] == 1) {
+        // detect cross first line
+        if (lineCircleCollide([lineCoords[0][buoyNo], lineCoords[1][buoyNo]], [lineCoords[4][buoyNo], lineCoords[5][buoyNo]], [x, y], 3)) {
+          // second line crossed
+          courseProgress[1] = 2;
+          console.log("line 2 crossed");
+        }
+      }
+
+      if (courseProgress[1] == 2) {
+        // detect cross main line
+        if (lineCircleCollide([lineCoords[0][buoyNo], lineCoords[1][buoyNo]], [lineCoords[2][buoyNo], lineCoords[3][buoyNo]], [x, y], 3)) {
+          // main line crossed
+          courseProgress[1] = 0;
+          courseProgress[0] = courseProgress[0] + 1;
+          console.log("buoy passed");
+          console.log(courseProgress[0]);
+          console.log(course.length);
+          if (courseProgress[0] == course.length) {
+            gameSubState = 3;
+          }
+        }
+      }
+    }
+
+    // finishing line
+    if (gameSubState == 3) {
+      // detect cross starting line
+      if (lineCircleCollide([finishLine[0], finishLine[1]], [finishLine[2], finishLine[3]], [x, y], 3)) {
+        // start line crossed
+        gameState = 2;
+        console.log("line crossed");
+      }
+    }
+
+
+  }
+
   function drawTargets() {
     var i = 0;
     var fontSize = 0;
@@ -190,8 +431,10 @@
             targetCoords[3][i] = false;
 
             // trigger penalty
-            penalty = true;
-            penaltyStart = timer;
+            if (gameMode) {
+              penalty = true;
+              penaltyStart = timer;
+            }
           }
         }
       }
@@ -202,9 +445,9 @@
       ctx.closePath();
 
       if(targetCoords[3][i]) {
-        ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
+        ctx.fillStyle = targetCol2;
       } else {
-        ctx.fillStyle = "rgba(142, 68, 173, 0.5)";
+        ctx.fillStyle = targetCol1;
       }
       ctx.fill();
 
@@ -217,7 +460,17 @@
     }
   }
 
-  function lineCircleCollide(a, b, circle, radius, nearest) {
+  function pointCircleCollide(point, circle, r) {
+    if (r===0) return false
+    var dx = circle[0] - point[0]
+    var dy = circle[1] - point[1]
+    return dx * dx + dy * dy <= r * r
+  }
+
+  function lineCircleCollide(a, b, circle, radius, nearest = false) {
+
+    var tmp = [0, 0]
+
     //check to see if start or end points lie within circle
     if (pointCircleCollide(a, circle, radius)) {
         if (nearest) {
@@ -269,7 +522,7 @@
     //check collision
     return pointCircleCollide(nearest, circle, radius)
             && pLen2 <= dLen2 && (px * dx + py * dy) >= 0
-}
+  }
 
 
   function targetRemaining() {
@@ -299,6 +552,10 @@
         }
       }
 
+      if (gameState == 3) {
+        message = disqualMessage;
+      }
+
       if (penalty) {
         message = ''.concat((buoyPenalty / 100).toFixed(0), " second penalty")
       }
@@ -307,7 +564,7 @@
         ctx.fillStyle = "black";
         ctx.strokeStyle = "white";
         ctx.lineWidth = 0.2;
-        ctx.font = "bold 60 px Arial";
+        ctx.font = "bold 60px Arial";
         ctx.textAlign = "center";
         ctx.fillText(message, canvas.width / 2, canvas.height / 2 + 30);
         ctx.strokeText(message, canvas.width / 2, canvas.height / 2 + 30);
@@ -338,10 +595,15 @@
   }
 
   function formatTime(dispTime = gameTimer, flash = true) {
-    var minutes = Math.floor((dispTime % (1000 * 60 * 60)) / (1000 * 60));
-    var seconds = Math.floor((dispTime % (1000 * 60 )) / 1000);
+    var minutes = Math.floor((Math.abs(dispTime) % (1000 * 60 * 60)) / (1000 * 60));
+    var seconds = Math.floor((Math.abs(dispTime) % (1000 * 60 )) / 1000);
     var sep = ":";
     var message = "";
+    var sign = "";
+
+    if (dispTime < 0) {
+      sign = "-"
+    }
 
     if (seconds < 10) {
       seconds = "0" + seconds;
@@ -351,7 +613,7 @@
       sep = " ";
     }
 
-    message = minutes + sep + seconds;
+    message = sign + minutes + sep + seconds;
     return message;
   }
 
@@ -364,6 +626,31 @@
     ctx.fillStyle = "black";
     ctx.fillText(message, 20, 40);
     //ctx.fillText(gameTimer / 500 % 2 < 1, 20, 80);
+  }
+
+  function drawProgressMessage(){
+
+    if (gameState == 1) {
+      if (gameSubState == 0) {
+        var message = "Wait for start time";
+      } else if (gameSubState == 1) {
+        var message = "Start! - cross the start line";
+      } else if (gameSubState == 2) {
+        var message = ''.concat("Next buoy: ", String.fromCharCode(course[courseProgress[0]] + 65));
+      } else if (gameSubState == 3) {
+        var message = "Cross the finish line";
+      }
+    } else if (gameState == 2) {
+      var message = "Course complete";
+    }
+
+    if (gameState == 1 || gameState == 2) {
+      ctx.font = "bold 20px Lucida Console";
+      ctx.textAlign = "left";
+      ctx.fillStyle = "black";
+      ctx.fillText(message, 20, 65);
+      //ctx.fillText(gameTimer / 500 % 2 < 1, 20, 80);
+    }
   }
 
   function drawWind(number = 1, moving = 0, xNumber = 2) {
@@ -549,6 +836,11 @@
     ctx.strokeText(''.concat("tBDir: ", rad2deg((2 * Math.PI + Math.PI / 2 - Math.atan2(y - targetCoords[1][1], targetCoords[0][1] - x)) % (2 * Math.PI))), 10, 420);
     ctx.strokeText(''.concat("tBDir-bDir: ", rad2deg(boatDirection - ((2 * Math.PI + Math.PI / 2 - Math.atan2(y - targetCoords[1][1], targetCoords[0][1] - x)) % (2 * Math.PI)))), 10, 440);
     ctx.strokeText(''.concat("timer: ", timer.toFixed(0)), 10, 470);
+
+    ctx.strokeText(''.concat("gameState: ", gameState), 10, 500);
+    ctx.strokeText(''.concat("gameSubState: ", gameSubState), 10, 520);
+    ctx.strokeText(''.concat("courseProgress[0]: ", courseProgress[0]), 10, 540);
+    ctx.strokeText(''.concat("courseProgress[1]: ", courseProgress[1]), 10, 560);
     //console.info(timer);
   }
 
@@ -558,8 +850,10 @@
     drawWind(3, 5, 7);
     if (showTimer) {
       drawTimer(gameState == 1);
+      drawProgressMessage();
     }
     drawBoat();
+    drawLines(-1);
     drawTargets();
     if (showMessages) {
       displayMessage();
@@ -581,13 +875,18 @@
       fixBoat = false;
     }
 
-    if (gameState == 1 && targetRemaining() == 0 && gameMode) {
+    if (buoyType == false && gameState == 1 && targetRemaining() == 0 && gameMode) {
       gameState += 1;
     }
 
     if (gameState > 0 && gameMode) {
       //steeringFixed = true;
       //sailFixed = true;
+    }
+
+    // detect lines crossed
+    if (gameMode && gameState == 1){
+      detectLineCross();
     }
 
     // calculate sail angle to wind
